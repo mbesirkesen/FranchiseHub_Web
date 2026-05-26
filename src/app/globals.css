@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  --background: #050811;
+  --foreground: #f8fafc;
+  --muted: #a4afc4;
+  --card: rgba(13, 19, 36, 0.72);
+  --ring: #6d5dfc;
+  --accent: #30e0a1;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-card: var(--card);
+  --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-script: var(--font-caveat);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #050811;
+    --foreground: #f8fafc;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background-image: radial-gradient(circle at 10% 20%, #35206b 0%, transparent 35%),
+    radial-gradient(circle at 80% 10%, #10345e 0%, transparent 28%),
+    radial-gradient(circle at 50% 90%, #0d3e38 0%, transparent 35%);
+}
+
+.glass-card {
+  background: var(--card);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: 0 24px 64px rgba(2, 6, 23, 0.6);
+  backdrop-filter: blur(10px);
+}
+
+.script-title {
+  font-family: var(--font-caveat), cursive;
+}
