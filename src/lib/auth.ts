@@ -44,11 +44,7 @@ export function getRoleFromToken(accessToken: string): UserRole | null {
     const payloadJson = atob(padded);
     const payload = JSON.parse(payloadJson) as { role?: string };
 
-    if (
-      payload.role === "buyer" ||
-      payload.role === "franchise_owner" ||
-      payload.role === "admin"
-    ) {
+    if (payload.role === "buyer" || payload.role === "franchise_owner") {
       return payload.role;
     }
   } catch {
