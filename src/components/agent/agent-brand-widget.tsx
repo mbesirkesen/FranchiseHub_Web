@@ -3,15 +3,18 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { estimateRoi, formatTry } from "@/components/buyer/brand-opportunity-card";
-import { Brand } from "@/lib/types";
+import { AssistantBrand } from "@/lib/types";
 
 type Props = {
-  brand: Brand;
+  brand: AssistantBrand;
   index: number;
 };
 
 export function AgentBrandWidget({ brand, index }: Props) {
-  const roi = estimateRoi(brand);
+  const roi =
+    brand.estimated_roi_percent != null && Number.isFinite(brand.estimated_roi_percent)
+      ? Math.round(brand.estimated_roi_percent)
+      : estimateRoi(brand);
 
   return (
     <motion.div
@@ -27,6 +30,9 @@ export function AgentBrandWidget({ brand, index }: Props) {
             {brand.sector ?? "—"} · {brand.location ?? "Türkiye"}
           </p>
           <p className="agent-brand-widget-budget">{formatTry(brand.min_investment_cost)}</p>
+          {brand.match_reasons && brand.match_reasons.length > 0 ? (
+            <p className="agent-brand-widget-match">{brand.match_reasons[0]}</p>
+          ) : null}
         </div>
         <span className="agent-brand-widget-roi">%{roi}</span>
       </Link>
