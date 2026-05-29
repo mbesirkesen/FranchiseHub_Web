@@ -236,44 +236,54 @@ export function EcosystemGraph({ summary, applications }: Props) {
     });
   };
 
+  const moveAt = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const node = pickNode(clientX, clientY);
+    if (node) {
+      setTooltip({
+        x: clientX - rect.left,
+        y: clientY - rect.top,
+        title: node.label,
+        detail: node.detail,
+      });
+    } else if (!dragRef.current) {
+      setTooltip(null);
+    }
+    if (dragRef.current) {
+      const n = nodesRef.current.find((nd) => nd.id === dragRef.current!.id);
+      if (n) {
+        n.x = clientX - rect.left - rect.width / 2;
+        n.y = clientY - rect.top - rect.height / 2;
+        n.vx = 0;
+        n.vy = 0;
+      }
+    }
+  };
+
   return (
     <div className="ecosystem-graph">
       <canvas
         ref={canvasRef}
         className="ecosystem-graph-canvas"
-        onMouseMove={(e) => {
-          const node = pickNode(e.clientX, e.clientY);
-          if (node) {
-            const rect = canvasRef.current!.getBoundingClientRect();
-            setTooltip({
-              x: e.clientX - rect.left,
-              y: e.clientY - rect.top,
-              title: node.label,
-              detail: node.detail,
-            });
-          } else if (!dragRef.current) {
-            setTooltip(null);
-          }
-          if (dragRef.current) {
-            const rect = canvasRef.current!.getBoundingClientRect();
-            const n = nodesRef.current.find((nd) => nd.id === dragRef.current!.id);
-            if (n) {
-              n.x = e.clientX - rect.left - rect.width / 2;
-              n.y = e.clientY - rect.top - rect.height / 2;
-              n.vx = 0;
-              n.vy = 0;
-            }
-          }
-        }}
-        onMouseLeave={() => {
+        onPointerMove={(e) => moveAt(e.clientX, e.clientY)}
+        onPointerLeave={() => {
           dragRef.current = null;
           setTooltip(null);
         }}
-        onMouseDown={(e) => {
+        onPointerDown={(e) => {
           const node = pickNode(e.clientX, e.clientY);
-          if (node) dragRef.current = { id: node.id, ox: node.x, oy: node.y };
+          if (node) {
+            dragRef.current = { id: node.id, ox: node.x, oy: node.y };
+            e.currentTarget.setPointerCapture(e.pointerId);
+          }
         }}
-        onMouseUp={() => {
+        onPointerUp={(e) => {
+          dragRef.current = null;
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }}
+        onPointerCancel={() => {
           dragRef.current = null;
         }}
       />
@@ -283,7 +293,7 @@ export function EcosystemGraph({ summary, applications }: Props) {
           <p className="ecosystem-tooltip-detail">{tooltip.detail}</p>
         </div>
       ) : null}
-      <p className="ecosystem-graph-hint">Noktaları sürükleyerek keşfedin</p>
+      <p className="ecosystem-graph-hint">Noktaları sürükleyerek keşfedin · mobilde parmağınızla kaydırın</p>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { HTMLAttributes, ReactNode } from "react";
 
 type BentoGridProps = {
   children: ReactNode;
@@ -9,14 +9,14 @@ export function BentoGrid({ children, className }: BentoGridProps) {
   return <div className={`bento-grid ${className ?? ""}`}>{children}</div>;
 }
 
-type BentoCellProps = {
+type BentoCellProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode;
   className?: string;
   span?: "1" | "2" | "3" | "row-2";
   glass?: boolean;
 };
 
-export function BentoCell({ children, className, span = "1", glass = true }: BentoCellProps) {
+export function BentoCell({ children, className, span = "1", glass = true, ...rest }: BentoCellProps) {
   return (
     <div
       className={[
@@ -29,6 +29,7 @@ export function BentoCell({ children, className, span = "1", glass = true }: Ben
       ]
         .filter(Boolean)
         .join(" ")}
+      {...rest}
     >
       {children}
     </div>

@@ -2,9 +2,9 @@
 
 import { motion } from "framer-motion";
 import { useMemo } from "react";
-import { CountUp } from "@/components/motion/count-up";
 import { Reveal } from "@/components/motion/reveal";
 import { BentoCell, BentoGrid } from "@/components/interaction/bento-grid";
+import { BentoMetricCell } from "@/components/interaction/bento-metric-cell";
 import { Skeleton } from "@/components/interaction/skeleton";
 import { EcosystemGraph } from "@/components/franchise/ecosystem-graph";
 import { FranchiseDashboardSummary, Application } from "@/lib/types";
@@ -48,10 +48,10 @@ export function FranchiseOwnerDashboard({ summary, applications, loading }: Prop
   }, [applications, s?.pending_applications]);
 
   const metrics = [
-    { label: "Toplam başvuru", value: s?.total_applications ?? 0 },
-    { label: "Bekleyen", value: s?.pending_applications ?? 0 },
-    { label: "Onaylı", value: s?.approved_applications ?? 0 },
-    { label: "Depo kalemi", value: s?.inventory_item_count ?? 0 },
+    { label: "Toplam başvuru", value: s?.total_applications ?? 0, watermark: "📄" },
+    { label: "Bekleyen", value: s?.pending_applications ?? 0, watermark: "⏳" },
+    { label: "Onaylı", value: s?.approved_applications ?? 0, watermark: "✓" },
+    { label: "Depo kalemi", value: s?.inventory_item_count ?? 0, watermark: "📦" },
   ];
 
   if (loading) {
@@ -76,14 +76,13 @@ export function FranchiseOwnerDashboard({ summary, applications, loading }: Prop
   return (
     <BentoGrid className="mt-2">
       {metrics.map((m, i) => (
-        <BentoCell key={m.label} className="bento-metric">
-          <Reveal delay={i * 0.05}>
-            <p className="bento-metric-label">{m.label}</p>
-            <p className="bento-metric-value">
-              <CountUp value={m.value} />
-            </p>
-          </Reveal>
-        </BentoCell>
+        <BentoMetricCell
+          key={m.label}
+          label={m.label}
+          value={m.value}
+          watermark={m.watermark}
+          delay={i * 0.05}
+        />
       ))}
 
       <BentoCell span="2" className="min-h-[14rem]">
@@ -154,7 +153,7 @@ export function FranchiseOwnerDashboard({ summary, applications, loading }: Prop
         </Reveal>
       </BentoCell>
 
-      <BentoCell span="3" className="min-h-[18rem] p-0 overflow-hidden">
+      <BentoCell span="3" className="min-h-[18rem] p-0 overflow-hidden" data-tour="fo-ecosystem">
         <Reveal delay={0.2}>
           <div className="p-4 pb-0">
             <h3 className="dash-panel-title">Ekosistem ağı</h3>

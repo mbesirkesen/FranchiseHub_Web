@@ -3,9 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo } from "react";
+import { FranchiseOwnerTour } from "@/components/onboarding/franchise-owner-tour";
 import { FranchiseOwnerDashboard } from "@/components/franchise/owner-dashboard";
 import { BentoActionLink } from "@/components/interaction/bento-action-link";
 import { BentoCell, BentoGrid } from "@/components/interaction/bento-grid";
+import { BentoMetricCell } from "@/components/interaction/bento-metric-cell";
+import { MagneticButton } from "@/components/interaction/magnetic-button";
 import { SkeletonBento } from "@/components/interaction/skeleton";
 import { EmptyState, HelpBox, StatusPill } from "@/components/ui/simple-blocks";
 import { getFranchiseDashboardSummary, getMyBrandApplications } from "@/lib/api";
@@ -48,7 +51,7 @@ export default function FranchiseOwnerHomePage() {
   return (
     <div className="space-y-4">
       <BentoGrid>
-        <BentoCell span="2" className="flex flex-col justify-center">
+        <BentoCell span="2" className="flex flex-col justify-center bento-cell-hero" data-tour="fo-hero">
           <p className="bento-hero-title">{s?.brand_name ? `Merhaba, ${s.brand_name}` : "Markanızın nabzı"}</p>
           <p className="bento-hero-sub">
             {s?.has_brand === false
@@ -57,12 +60,21 @@ export default function FranchiseOwnerHomePage() {
                 ? `${pendingCount} kişi sizden haber bekliyor.`
                 : "Verileriniz güncel — markanız güvende."}
           </p>
+          {s?.has_brand === false ? (
+            <MagneticButton strength={0.22} className="mt-5">
+              <Link href="/franchise-owner/brand" className="btn btn-primary btn-glow w-fit px-6">
+                İlk markanızı oluşturun
+              </Link>
+            </MagneticButton>
+          ) : null}
         </BentoCell>
 
-        <BentoCell className="flex flex-col justify-center">
-          <p className="bento-metric-label">Bekleyen</p>
-          <p className="bento-metric-value text-[var(--primary)]">{pendingCount}</p>
-        </BentoCell>
+        <BentoMetricCell
+          label="Bekleyen"
+          value={pendingCount}
+          watermark="⏳"
+          valueClassName="text-[var(--primary)]"
+        />
       </BentoGrid>
 
       {summaryQuery.isError ? <p className="alert alert-error">Özet yüklenemedi.</p> : null}
@@ -80,7 +92,7 @@ export default function FranchiseOwnerHomePage() {
       ) : null}
 
       <BentoGrid>
-        <BentoCell>
+        <BentoCell data-tour="fo-applications">
           <BentoActionLink
             href="/franchise-owner/applications"
             title="Gelen başvurular"
@@ -90,7 +102,7 @@ export default function FranchiseOwnerHomePage() {
             badge={pendingCount}
           />
         </BentoCell>
-        <BentoCell>
+        <BentoCell data-tour="fo-stock">
           <BentoActionLink
             href="/franchise-owner/stock"
             title="Depo & sipariş"
@@ -122,10 +134,14 @@ export default function FranchiseOwnerHomePage() {
                   <div className="flex items-center gap-2">
                     <StatusPill status={a.status} />
                     <Link
-                      href={`/franchise-owner/applications/${a.id}`}
+                      href={
+                        a.status === "approved"
+                          ? `/franchise-owner/messages/${a.id}`
+                          : `/franchise-owner/applications/${a.id}`
+                      }
                       className="text-xs text-[var(--primary-hover)] underline"
                     >
-                      Bak
+                      {a.status === "approved" ? "Mesaj" : "Bak"}
                     </Link>
                   </div>
                 </li>
@@ -149,6 +165,7 @@ export default function FranchiseOwnerHomePage() {
           </BentoCell>
         ) : null}
       </BentoGrid>
+      <FranchiseOwnerTour />
     </div>
   );
 }
