@@ -19,6 +19,7 @@ export function getRoleRoute(role: UserRole) {
 export const FRANCHISE_OWNER_NAV: SideNavItem[] = [
   { href: "/franchise-owner", label: "Bugün", icon: "🏠", hint: "Ne yapmalıyım?" },
   { href: "/franchise-owner/applications", label: "Başvurular", icon: "📋", hint: "Gelen talepler" },
+  { href: "/franchise-owner/messages", label: "Mesajlar", icon: "💬", hint: "Adaylarla yazışın" },
   { href: "/franchise-owner/brand", label: "Markam", icon: "🏷️", hint: "Vitrin bilgileri" },
   { href: "/franchise-owner/stock", label: "Depo & Sipariş", icon: "📦", hint: "Stok ve malzeme" },
 ];
@@ -28,6 +29,7 @@ export const BUYER_NAV: SideNavItem[] = [
   { href: "/buyer", label: "Ana sayfa", icon: "🏠", hint: "Durumunuz" },
   { href: "/buyer/discover", label: "Marka bul", icon: "🔍", hint: "Franchise ara" },
   { href: "/buyer/applications", label: "Başvurum", icon: "📄", hint: "Süreciniz" },
+  { href: "/buyer/messages", label: "Mesajlar", icon: "💬", hint: "Markayla yazışın" },
 ];
 
 export function getActiveSideNavHref(pathname: string, items: SideNavItem[]): string | null {

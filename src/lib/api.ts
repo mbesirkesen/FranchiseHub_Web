@@ -7,6 +7,10 @@ import {
   Application,
   ApplicationCreateRequest,
   ApplicationUpdateRequest,
+  AgentSession,
+  AgentSessionDetail,
+  AssistantChatRequest,
+  AssistantQueryResponse,
   Brand,
   BrandCompareRequest,
   BrandCreateRequest,
@@ -17,6 +21,7 @@ import {
   BuyerQualificationRequest,
   BuyerRegisterRequest,
   ChangePasswordRequest,
+  ConversationItem,
   ConversationSummary,
   ForgotPasswordRequest,
   FranchiseAnalytics,
@@ -226,9 +231,14 @@ export async function markMessageRead(messageId: number) {
   return response.data;
 }
 
+export async function markApplicationMessagesRead(applicationId: number) {
+  const response = await api.patch(`/messages/${applicationId}/read-all`);
+  return response.data;
+}
+
 export async function getConversations() {
   const response = await api.get<unknown>("/conversations");
-  return normalizeList<ConversationSummary>(response.data);
+  return normalizeList<ConversationItem>(response.data);
 }
 
 export async function getNotifications() {
@@ -385,4 +395,37 @@ export async function createBulkSupplyRequest(payload: SupplyBulkRequest) {
 export async function getSupplyPool() {
   const response = await api.get<unknown>("/supply-requests/pool");
   return normalizeList<SupplyRequest>(response.data);
+}
+
+function normalizeAssistantResponse(data: AssistantQueryResponse): AssistantQueryResponse {
+  const brands = data.brands?.length ? data.brands : data.related_brands ?? [];
+  return {
+    ...data,
+    answer: data.answer || data.reply || "",
+    brands,
+  };
+}
+
+export async function postAgentChat(payload: AssistantChatRequest) {
+  const response = await api.post<AssistantQueryResponse>("/agent/chat", payload);
+  return normalizeAssistantResponse(response.data);
+}
+
+export async function postAgentQuery(payload: Omit<AssistantChatRequest, "new_session">) {
+  const response = await api.post<AssistantQueryResponse>("/agent/query", payload);
+  return normalizeAssistantResponse(response.data);
+}
+
+export async function getAgentSessions() {
+  const response = await api.get<AgentSession[]>("/agent/sessions");
+  return response.data;
+}
+
+export async function getAgentSession(sessionId: number) {
+  const response = await api.get<AgentSessionDetail>(`/agent/sessions/${sessionId}`);
+  return response.data;
+}
+
+export async function deleteAgentSession(sessionId: number) {
+  await api.delete(`/agent/sessions/${sessionId}`);
 }

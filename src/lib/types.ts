@@ -85,13 +85,15 @@ export type MessageCreateRequest = {
 };
 
 export type Message = {
-  id?: number;
-  application_id?: number;
+  id: number;
+  application_id: number;
   content: string;
-  created_at?: string;
-  sender_id?: number;
-  is_from_buyer?: boolean;
-  sender_role?: string;
+  sender_id: number;
+  sender_role: UserRole;
+  is_from_buyer: boolean;
+  is_read?: boolean;
+  read_at?: string | null;
+  created_at?: string | null;
 };
 
 export type InventoryItem = {
@@ -282,10 +284,103 @@ export type FranchiseAnalytics = {
   supply_requests_by_status: Record<string, number>;
 };
 
-export type ConversationSummary = {
+export type ConversationLastMessage = {
+  id: number;
+  content: string;
+  sender_role: UserRole;
+  created_at?: string | null;
+};
+
+/** GET /conversations — items[] */
+export type ConversationItem = {
   application_id: number;
-  brand_id?: number;
-  last_message?: string;
-  last_message_at?: string;
+  application_status: ApplicationStatus;
+  brand_id: number;
+  brand_name: string;
+  buyer_id: number;
+  buyer_name: string;
   unread_count?: number;
+  last_message?: ConversationLastMessage | null;
+};
+
+/** @deprecated ConversationItem kullanın */
+export type ConversationSummary = ConversationItem;
+
+/** POST /agent/chat, /agent/query — widget marka kartı */
+export type AssistantBrand = Brand & {
+  estimated_roi_percent?: number | null;
+  match_score?: number | null;
+  match_reasons?: string[];
+};
+
+export type AgentIntent =
+  | "brand_search"
+  | "brand_detail"
+  | "brand_compare"
+  | "favorites_similar"
+  | "application_status"
+  | "territory_check"
+  | "general"
+  | "no_match";
+
+export type AssistantSuggestion = {
+  label: string;
+  action: "open_brand" | "add_favorite" | "start_application" | "refine_search" | string;
+  brand_id?: number | null;
+  match_score?: number | null;
+};
+
+export type AssistantChatRequest = {
+  query: string;
+  brand_id?: number | null;
+  brand_context_id?: number | null;
+  session_id?: number | null;
+  new_session?: boolean;
+};
+
+export type AssistantQueryResponse = {
+  answer: string;
+  reply?: string;
+  intent?: AgentIntent | string;
+  suggestions?: AssistantSuggestion[];
+  related_brands?: AssistantBrand[];
+  related_brand_ids?: number[];
+  filters_applied?: Record<string, unknown>;
+  source?: "rules" | "hybrid" | string;
+  session_id?: number | null;
+  message_id?: number | null;
+  latency_ms?: number | null;
+  brands?: AssistantBrand[];
+  compare?: {
+    brands?: unknown[];
+    comparison_table?: Record<string, unknown>;
+    financial_summaries?: unknown[];
+  } | null;
+};
+
+export type AgentSession = {
+  id: number;
+  title?: string | null;
+  brand_context_id?: number | null;
+  created_at: string;
+  updated_at: string;
+  message_count?: number;
+  last_message_preview?: string | null;
+};
+
+export type AgentMessage = {
+  id: number;
+  session_id: number;
+  role: "user" | "assistant" | string;
+  content: string;
+  intent?: string | null;
+  source?: string;
+  filters_applied?: Record<string, unknown> | null;
+  related_brand_ids?: number[] | null;
+  created_at: string;
+};
+
+export type AgentSessionDetail = {
+  session: AgentSession;
+  messages?: AgentMessage[];
 };
