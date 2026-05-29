@@ -1,8 +1,20 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export function MarketingHeader() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="site-header">
+    <header className={`site-header site-header-marketing${scrolled ? " site-header-scrolled" : ""}`}>
       <div className="page-container flex h-16 items-center justify-between">
         <Link href="/" className="brand-mark">
           <span className="brand-mark-icon">FH</span>
