@@ -40,7 +40,7 @@ export default function FranchiseApplicationMessagesPage() {
   });
 
   if (!Number.isFinite(applicationId) || applicationId <= 0) {
-    return <p className="text-sm text-red-400">Geçersiz başvuru.</p>;
+    return <p className="text-[var(--danger)]">Geçersiz başvuru.</p>;
   }
 
   const messages = messagesQuery.data ?? [];
@@ -49,42 +49,42 @@ export default function FranchiseApplicationMessagesPage() {
     <div>
       <Link
         href="/franchise-owner/applications"
-        className="text-sm font-medium text-cyan-300/90 hover:text-cyan-200"
+        className="text-sm font-medium text-[var(--primary-hover)] hover:text-[var(--primary-hover)]"
       >
         ← Başvurulara dön
       </Link>
 
-      <h2 className="mt-4 text-lg font-semibold text-slate-50">Başvuru #{applicationId}</h2>
+      <h2 className="mt-4 page-title">Başvuru #{applicationId}</h2>
       {applicationQuery.isLoading ? (
-        <p className="mt-2 text-sm text-slate-400">Başvuru bilgisi yükleniyor…</p>
+        <p className="page-desc">Başvuru bilgisi yükleniyor…</p>
       ) : null}
       {application ? (
-        <p className="mt-2 text-sm text-slate-400">
-          Durum: <span className="font-medium text-slate-100">{application.status}</span>
+        <p className="page-desc">
+          Durum: <span className="font-medium text-[var(--foreground)]">{application.status}</span>
           {application.notes ? ` · ${application.notes}` : null}
         </p>
       ) : !applicationQuery.isLoading ? (
         <p className="mt-2 text-sm text-amber-400/90">
-          Bu başvuru listede yok veya erişim yok; yine de mesaj uçları denenebilir.
+          Bu başvuru listede yok veya erişim yok.
         </p>
       ) : null}
 
-      <div className="mt-6 rounded-xl border border-slate-500/25 bg-slate-950/35 p-4 backdrop-blur-sm">
-        <h3 className="text-sm font-semibold text-slate-50">Mesajlar</h3>
+      <div className="mt-6 card-muted p-4 backdrop-blur-sm">
+        <h3 className="text-sm font-semibold text-[var(--foreground)]">Mesajlar</h3>
         {messagesQuery.isLoading ? (
-          <p className="mt-3 text-sm text-slate-400">Mesajlar yükleniyor…</p>
+          <p className="mt-3 text-sm text-[var(--muted-foreground)]">Mesajlar yükleniyor…</p>
         ) : null}
         {messagesQuery.isError ? (
-          <p className="mt-3 text-sm text-red-400">Mesajlar alınamadı.</p>
+          <p className="mt-3 text-[var(--danger)]">Mesajlar alınamadı.</p>
         ) : null}
         <ul className="mt-3 max-h-80 space-y-2 overflow-y-auto">
           {messages.map((m, idx) => (
             <li
               key={m.id ?? idx}
-              className="rounded-lg border border-slate-500/25 bg-slate-950/50 px-3 py-2 text-sm text-slate-200"
+              className="rounded-lg bg-[var(--border)] border bg-[var(--card)] px-3 py-2 text-sm text-[var(--foreground)]"
             >
               <p>{m.content}</p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-[var(--muted)]">
                 {m.is_from_buyer === true
                   ? "Alıcı"
                   : m.sender_role
@@ -96,23 +96,23 @@ export default function FranchiseApplicationMessagesPage() {
           ))}
         </ul>
         {messages.length === 0 && !messagesQuery.isLoading ? (
-          <p className="mt-3 text-sm text-slate-400">Henüz mesaj yok.</p>
+          <p className="mt-3 text-sm text-[var(--muted-foreground)]">Henüz mesaj yok.</p>
         ) : null}
 
-        <div className="mt-4 border-t border-slate-500/20 pt-4">
-          <label className="text-xs font-medium text-slate-300">Yeni mesaj</label>
+        <div className="mt-4 border-t border-[var(--border)] pt-4">
+          <label className="text-xs font-medium text-[var(--muted-foreground)]">Yeni mesaj</label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={3}
-            className="mt-1 w-full rounded-xl border border-slate-500/40 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/60"
+            className="mt-1 w-full input"
             placeholder="Adaya not yazın…"
           />
           <button
             type="button"
             disabled={sendMutation.isPending || !content.trim()}
             onClick={() => sendMutation.mutate()}
-            className="mt-2 rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-3 py-2 text-xs font-semibold text-slate-950 disabled:opacity-50"
+            className="mt-2 rounded-xl btn btn-primary btn-sm disabled:opacity-50"
           >
             {sendMutation.isPending ? "Gönderiliyor…" : "Gönder"}
           </button>
@@ -120,7 +120,7 @@ export default function FranchiseApplicationMessagesPage() {
       </div>
 
       {feedback ? (
-        <p className="mt-4 rounded-xl border border-slate-500/30 bg-slate-950/40 px-3 py-2 text-sm text-slate-200">
+        <p className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-sm text-[var(--foreground)]">
           {feedback}
         </p>
       ) : null}

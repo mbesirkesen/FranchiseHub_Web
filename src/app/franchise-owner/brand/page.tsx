@@ -99,16 +99,16 @@ export default function FranchiseBrandProfilePage() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-slate-50">Marka profili</h2>
-      <p className="mt-2 text-sm text-slate-400">
-        Kontrat: <code className="text-cyan-300/90">GET /franchise-owner/my-brand</code> (yoksa{" "}
-        <code className="text-cyan-300/90">null</code>), oluşturma{" "}
-        <code className="text-cyan-300/90">POST /franchise-owner/brand</code>, güncelleme{" "}
-        <code className="text-cyan-300/90">PATCH /franchise-owner/brand</code>.
+      <h2 className="page-title">Marka profili</h2>
+      <p className="page-desc">
+        Kontrat: <code className="text-[var(--primary-hover)]">GET /franchise-owner/my-brand</code> (yoksa{" "}
+        <code className="text-[var(--primary-hover)]">null</code>), oluşturma{" "}
+        <code className="text-[var(--primary-hover)]">POST /franchise-owner/brand</code>, güncelleme{" "}
+        <code className="text-[var(--primary-hover)]">PATCH /franchise-owner/brand</code>.
       </p>
 
       {brandQuery.isLoading ? (
-        <p className="mt-6 text-sm text-slate-400">Marka bilgisi yükleniyor…</p>
+        <p className="mt-6 text-sm text-[var(--muted-foreground)]">Marka bilgisi yükleniyor…</p>
       ) : null}
 
       {brandQuery.isError ? (
@@ -119,11 +119,11 @@ export default function FranchiseBrandProfilePage() {
       ) : null}
 
       {!brandQuery.isLoading && !brandQuery.isError ? (
-        <div className="mt-6 space-y-4 rounded-xl border border-slate-500/25 bg-slate-950/35 p-5 backdrop-blur-sm">
+        <div className="mt-6 space-y-4 rounded-xl bg-[var(--border)] border bg-[var(--bg-subtle)] p-5 backdrop-blur-sm">
           {!hasBrand ? (
-            <p className="rounded-lg border border-cyan-500/30 bg-cyan-950/20 px-3 py-2 text-sm text-cyan-100">
+            <p className="rounded-lg border border-[var(--primary)]/25 bg-[var(--accent-soft)] px-3 py-2 text-sm text-[var(--foreground)]">
               Henüz marka yok. İlk kayıt için POST kullanılır; maliyet için{" "}
-              <code className="text-cyan-200/90">initial_cost</code> veya min/max yatırım alanları.
+              <code className="text-[var(--primary-hover)]/90">initial_cost</code> veya min/max yatırım alanları.
             </p>
           ) : null}
           {hasBrand && brand?.is_approved === false ? (
@@ -132,79 +132,79 @@ export default function FranchiseBrandProfilePage() {
             </p>
           ) : null}
           <div>
-            <label className="text-xs font-medium text-slate-300">Marka adı</label>
+            <label className="text-xs font-medium text-[var(--muted-foreground)]">Marka adı</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full max-w-md rounded-xl border border-slate-500/40 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/60"
+              className="mt-1 w-full max-w-md input"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-300">Sektör</label>
+            <label className="text-xs font-medium text-[var(--muted-foreground)]">Sektör</label>
             <input
               value={sector}
               onChange={(e) => setSector(e.target.value)}
-              className="mt-1 w-full max-w-md rounded-xl border border-slate-500/40 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/60"
+              className="mt-1 w-full max-w-md input"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-300">Lokasyon</label>
+            <label className="text-xs font-medium text-[var(--muted-foreground)]">Lokasyon</label>
             <input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              className="mt-1 w-full max-w-md rounded-xl border border-slate-500/40 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/60"
+              className="mt-1 w-full max-w-md input"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-300">Açıklama</label>
+            <label className="text-xs font-medium text-[var(--muted-foreground)]">Açıklama</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="mt-1 w-full max-w-2xl rounded-xl border border-slate-500/40 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/60"
+              className="mt-1 w-full max-w-2xl input"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-300">Destek / ek bilgi</label>
+            <label className="text-xs font-medium text-[var(--muted-foreground)]">Destek / ek bilgi</label>
             <textarea
               value={supportDetails}
               onChange={(e) => setSupportDetails(e.target.value)}
               rows={2}
-              className="mt-1 w-full max-w-2xl rounded-xl border border-slate-500/40 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/60"
+              className="mt-1 w-full max-w-2xl input"
             />
           </div>
           <div className="flex flex-wrap gap-4">
             <div>
-              <label className="text-xs font-medium text-slate-300">Başlangıç maliyeti (opsiyonel)</label>
+              <label className="text-xs font-medium text-[var(--muted-foreground)]">Başlangıç maliyeti (opsiyonel)</label>
               <input
                 type="number"
                 value={initialCost}
                 onChange={(e) => setInitialCost(e.target.value)}
-                className="mt-1 w-40 rounded-xl border border-slate-500/40 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/60"
+                className="mt-1 w-40 input"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-300">Min. yatırım</label>
+              <label className="text-xs font-medium text-[var(--muted-foreground)]">Min. yatırım</label>
               <input
                 type="number"
                 value={minCost}
                 onChange={(e) => setMinCost(e.target.value)}
-                className="mt-1 w-36 rounded-xl border border-slate-500/40 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/60"
+                className="mt-1 w-36 input"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-300">Maks. yatırım</label>
+              <label className="text-xs font-medium text-[var(--muted-foreground)]">Maks. yatırım</label>
               <input
                 type="number"
                 value={maxCost}
                 onChange={(e) => setMaxCost(e.target.value)}
-                className="mt-1 w-36 rounded-xl border border-slate-500/40 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/60"
+                className="mt-1 w-36 input"
               />
             </div>
           </div>
 
           {saveError && axios.isAxiosError(saveError) ? (
-            <p className="text-sm text-red-400">İşlem başarısız (POST/PATCH /franchise-owner/brand).</p>
+            <p className="text-[var(--danger)]">İşlem başarısız (POST/PATCH /franchise-owner/brand).</p>
           ) : null}
           {saveSuccess ? (
             <p className="text-sm text-emerald-400">{hasBrand ? "Güncellendi." : "Marka oluşturuldu."}</p>
@@ -215,7 +215,7 @@ export default function FranchiseBrandProfilePage() {
               type="button"
               disabled={saving || !name.trim()}
               onClick={() => updateMutation.mutate()}
-              className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:opacity-50"
+              className="rounded-xl btn btn-primary disabled:opacity-50"
             >
               {updateMutation.isPending ? "Kaydediliyor…" : "Kaydet"}
             </button>
@@ -224,7 +224,7 @@ export default function FranchiseBrandProfilePage() {
               type="button"
               disabled={saving || !name.trim()}
               onClick={() => createMutation.mutate()}
-              className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:opacity-50"
+              className="rounded-xl btn btn-primary disabled:opacity-50"
             >
               {createMutation.isPending ? "Oluşturuluyor…" : "Marka oluştur"}
             </button>
