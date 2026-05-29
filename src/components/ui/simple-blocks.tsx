@@ -53,9 +53,14 @@ export function ActionTile({
   );
 }
 
-export function StatusPill({ status }: { status: string }) {
+export function StatusPill({ status, live }: { status: string; live?: boolean }) {
   const label = APPLICATION_STATUS_LABEL[status] ?? status;
-  return <span className={`status-pill status-pill-${status}`}>{label}</span>;
+  return (
+    <span className={`status-pill status-pill-${status}${live ? " status-pill-live" : ""}`}>
+      {live ? <span className="status-pill-dot" aria-hidden /> : null}
+      {label}
+    </span>
+  );
 }
 
 export function EmptyState({

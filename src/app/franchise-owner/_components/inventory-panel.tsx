@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { ExportMenu } from "@/components/ui/export-menu";
 import {
   createInventoryItem,
   deleteInventoryItem,
@@ -9,6 +10,7 @@ import {
   getLowStockInventory,
   updateInventoryItem,
 } from "@/lib/api";
+import { downloadCsv, printTableAsPdf } from "@/lib/export-utils";
 import { InventoryItem } from "@/lib/types";
 
 export function InventoryPanel() {
@@ -70,9 +72,22 @@ export function InventoryPanel() {
   const items = inventoryQuery.data ?? [];
   const lowStock = lowStockQuery.data ?? [];
 
+  const exportRows = () => {
+    const headers = ["ID", "Ürün", "Miktar", "SKU", "Birim"];
+    const rows = items.map((item) => [
+      String(item.id),
+      item.product_name ?? "",
+      item.quantity != null ? String(item.quantity) : "",
+      item.sku ?? "",
+      item.unit ?? "",
+    ]);
+    return { headers, rows };
+  };
+
   return (
     <div>
-      <div className="card p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="card flex-1 p-4">
         <h3 className="text-sm font-semibold">Depoya ürün ekle</h3>
         <p className="mt-1 text-xs text-[var(--muted)]">Örn: Kahve çekirdeği, bardak, şurup…</p>
         <div className="mt-3 flex flex-wrap items-end gap-3">
@@ -103,6 +118,18 @@ export function InventoryPanel() {
             Ekle
           </button>
         </div>
+        </div>
+        <ExportMenu
+          disabled={items.length === 0}
+          onExportCsv={() => {
+            const { headers, rows } = exportRows();
+            downloadCsv(`franchisehub-depo-${new Date().toISOString().slice(0, 10)}.csv`, [headers, ...rows]);
+          }}
+          onExportPdf={() => {
+            const { headers, rows } = exportRows();
+            printTableAsPdf("Depo listesi", headers, rows);
+          }}
+        />
       </div>
 
       {inventoryQuery.isLoading ? <p className="mt-6 text-sm text-[var(--muted-foreground)]">Yükleniyor…</p> : null}

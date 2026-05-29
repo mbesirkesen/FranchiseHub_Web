@@ -3,7 +3,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { getMyBrandApplications, updateApplicationStatus } from "@/lib/api";
+import { ExportMenu } from "@/components/ui/export-menu";
+import { getConversations, getMyBrandApplications, updateApplicationStatus } from "@/lib/api";
+import { downloadCsv, printTableAsPdf } from "@/lib/export-utils";
 import { Application, ApplicationStatus } from "@/lib/types";
 
 const statusLabel: Record<ApplicationStatus, string> = {
@@ -24,6 +26,11 @@ export default function FranchiseApplicationsPage() {
   const applicationsQuery = useQuery({
     queryKey: ["franchise-applications"],
     queryFn: () => getMyBrandApplications(),
+  });
+
+  const conversationsQuery = useQuery({
+    queryKey: ["conversations"],
+    queryFn: () => getConversations(),
   });
 
   const statusMutation = useMutation({
@@ -47,6 +54,9 @@ export default function FranchiseApplicationsPage() {
   });
 
   const apps = applicationsQuery.data ?? [];
+  const conversationByAppId = new Map(
+    (conversationsQuery.data ?? []).map((c) => [c.application_id, c]),
+  );
 
   const filteredApps = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -65,12 +75,47 @@ export default function FranchiseApplicationsPage() {
     });
   }, [apps, statusFilter, search]);
 
+  const exportApplications = () => {
+    const headers = ["Başvuru No", "Durum", "Marka ID", "Aday", "Not", "Tarih"];
+    const rows = filteredApps.map((app) => {
+      const conv = conversationByAppId.get(app.id);
+      return [
+        String(app.id),
+        statusLabel[app.status] ?? app.status,
+        app.brand_id != null ? String(app.brand_id) : "",
+        conv?.buyer_name ?? "",
+        app.notes ?? "",
+        app.created_at ?? "",
+      ];
+    });
+    return { headers, rows };
+  };
+
+  const exportCsv = () => {
+    const { headers, rows } = exportApplications();
+    downloadCsv(`franchisehub-basvurular-${new Date().toISOString().slice(0, 10)}.csv`, [headers, ...rows]);
+  };
+
+  const exportPdf = () => {
+    const { headers, rows } = exportApplications();
+    printTableAsPdf("Başvurular", headers, rows);
+  };
+
   return (
     <div>
-      <h2 className="page-title">Başvurular</h2>
-      <p className="page-desc">
-        Markanıza gelen franchise başvurularını inceleyin; onaylayın veya reddedin. Adayla mesaj için başvuruya girin.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="page-title">Başvurular</h2>
+          <p className="page-desc">
+            Markanıza gelen franchise başvurularını inceleyin; onaylayın veya reddedin. Mesajlaşma yalnızca onaylı başvurularda açılır.
+          </p>
+        </div>
+        <ExportMenu
+          disabled={filteredApps.length === 0}
+          onExportCsv={exportCsv}
+          onExportPdf={exportPdf}
+        />
+      </div>
 
       <div className="mt-6 flex flex-col gap-4 card-muted p-4 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-end">
         <div>
@@ -87,11 +132,11 @@ export default function FranchiseApplicationsPage() {
           </select>
         </div>
         <div className="min-w-[12rem] flex-1">
-          <label className="text-xs font-medium text-[var(--muted)]">Ara (no, not, marka #)</label>
+          <label className="text-xs font-medium text-[var(--muted)]">İsim, başvuru no veya kelime ile ara…</label>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="örn. 12 veya ankara"
+            placeholder="Örn. başvuru numarası, ad veya şehir"
             className="mt-1 w-full input"
           />
         </div>
@@ -108,14 +153,21 @@ export default function FranchiseApplicationsPage() {
       ) : null}
 
       <ul className="mt-6 space-y-4">
-        {filteredApps.map((app) => (
+        {filteredApps.map((app) => {
+          const conv = conversationByAppId.get(app.id);
+          const canMessage = app.status === "approved";
+
+          return (
           <li
             key={app.id}
             className="card-muted p-4 backdrop-blur-sm"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-[var(--foreground)]">Başvuru #{app.id}</p>
+                <p className="text-sm font-semibold text-[var(--foreground)]">
+                  Başvuru #{app.id}
+                  {conv?.buyer_name ? ` · ${conv.buyer_name}` : ""}
+                </p>
                 <p className="mt-1 text-xs text-[var(--muted)]">
                   Durum:{" "}
                   <span className="font-medium text-[var(--primary-hover)]">
@@ -124,15 +176,31 @@ export default function FranchiseApplicationsPage() {
                   {app.brand_id != null ? ` · Marka #${app.brand_id}` : null}
                   {app.created_at ? ` · ${app.created_at}` : null}
                 </p>
+                {conv?.last_message ? (
+                  <p className="mt-2 line-clamp-2 text-xs text-[var(--muted-foreground)]">
+                    Son mesaj: {conv.last_message.content}
+                  </p>
+                ) : null}
                 {app.notes ? (
                   <p className="mt-2 text-sm text-[var(--muted-foreground)]">Not: {app.notes}</p>
                 ) : null}
               </div>
               <Link
-                href={`/franchise-owner/applications/${app.id}`}
-                className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] transition hover:border-cyan-400/45"
+                href={
+                  canMessage
+                    ? `/franchise-owner/messages/${app.id}`
+                    : `/franchise-owner/applications/${app.id}`
+                }
+                className={`shrink-0 btn btn-sm ${canMessage ? "btn-primary" : ""}`}
               >
-                Mesajlar
+                {canMessage ? (
+                  <>
+                    Mesajlar
+                    {(conv?.unread_count ?? 0) > 0 ? ` (${conv!.unread_count})` : ""}
+                  </>
+                ) : (
+                  "Detay"
+                )}
               </Link>
             </div>
 
@@ -181,7 +249,8 @@ export default function FranchiseApplicationsPage() {
               </div>
             ) : null}
           </li>
-        ))}
+          );
+        })}
       </ul>
 
       {!applicationsQuery.isLoading && apps.length === 0 ? (

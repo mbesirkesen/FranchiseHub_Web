@@ -1,9 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
 import { useEffect, useState } from "react";
 import { createFranchiseBrand, getFranchiseMyBrand, updateFranchiseBrand } from "@/lib/api";
+import { getUserFacingError } from "@/lib/form-errors";
 import { Brand } from "@/lib/types";
 
 function brandPayload(
@@ -84,27 +84,27 @@ export default function FranchiseBrandProfilePage() {
     },
   });
 
-  const backendHint = (() => {
-    if (!brandQuery.error || !axios.isAxiosError(brandQuery.error)) {
-      return null;
-    }
-    return "İstek başarısız. GET /franchise-owner/my-brand ve oturumu kontrol edin.";
-  })();
-
   const brand: Brand | null | undefined = brandQuery.data;
   const hasBrand = Boolean(brand);
   const saving = createMutation.isPending || updateMutation.isPending;
   const saveError = createMutation.error ?? updateMutation.error;
   const saveSuccess = createMutation.isSuccess || updateMutation.isSuccess;
 
+  const loadErrorMessage =
+    brandQuery.error != null
+      ? getUserFacingError(brandQuery.error, "Marka bilgisi yüklenemedi. Oturumunuzu kontrol edip tekrar deneyin.")
+      : null;
+
+  const saveErrorMessage =
+    saveError != null
+      ? getUserFacingError(saveError, "Kayıt sırasında bir sorun oluştu. Bilgilerinizi kontrol edip tekrar deneyin.")
+      : null;
+
   return (
     <div>
       <h2 className="page-title">Marka profili</h2>
       <p className="page-desc">
-        Kontrat: <code className="text-[var(--primary-hover)]">GET /franchise-owner/my-brand</code> (yoksa{" "}
-        <code className="text-[var(--primary-hover)]">null</code>), oluşturma{" "}
-        <code className="text-[var(--primary-hover)]">POST /franchise-owner/brand</code>, güncelleme{" "}
-        <code className="text-[var(--primary-hover)]">PATCH /franchise-owner/brand</code>.
+        Marka bilgilerinizi güncelleyin; aday yatırımcılar keşif ve başvuru ekranlarında bu profili görür.
       </p>
 
       {brandQuery.isLoading ? (
@@ -113,8 +113,7 @@ export default function FranchiseBrandProfilePage() {
 
       {brandQuery.isError ? (
         <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-950/25 px-4 py-3 text-sm text-amber-200">
-          <p>Marka yüklenemedi.</p>
-          {backendHint ? <p className="mt-2 text-xs text-amber-200/80">{backendHint}</p> : null}
+          <p>{loadErrorMessage}</p>
         </div>
       ) : null}
 
@@ -122,13 +121,14 @@ export default function FranchiseBrandProfilePage() {
         <div className="mt-6 space-y-4 rounded-xl bg-[var(--border)] border bg-[var(--bg-subtle)] p-5 backdrop-blur-sm">
           {!hasBrand ? (
             <p className="rounded-lg border border-[var(--primary)]/25 bg-[var(--accent-soft)] px-3 py-2 text-sm text-[var(--foreground)]">
-              Henüz marka yok. İlk kayıt için POST kullanılır; maliyet için{" "}
-              <code className="text-[var(--primary-hover)]/90">initial_cost</code> veya min/max yatırım alanları.
+              Henüz bir marka profiliniz yok. Marka adını ve yatırım bilgilerinizi girerek ilk profilinizi
+              oluşturabilirsiniz; başlangıç yatırım bedeli ve min/maks aralığı adayların sizi değerlendirmesine
+              yardımcı olur.
             </p>
           ) : null}
           {hasBrand && brand?.is_approved === false ? (
             <p className="rounded-lg border border-amber-500/30 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
-              Marka henüz onaylanmamış olabilir; yayınlama kuralları backend’e bağlıdır.
+              Markanız inceleme aşamasında. Onaylandıktan sonra keşif listelerinde yayınlanır.
             </p>
           ) : null}
           <div>
@@ -175,11 +175,14 @@ export default function FranchiseBrandProfilePage() {
           </div>
           <div className="flex flex-wrap gap-4">
             <div>
-              <label className="text-xs font-medium text-[var(--muted-foreground)]">Başlangıç maliyeti (opsiyonel)</label>
+              <label className="text-xs font-medium text-[var(--muted-foreground)]">
+                Başlangıç yatırım bedeli (opsiyonel)
+              </label>
               <input
                 type="number"
                 value={initialCost}
                 onChange={(e) => setInitialCost(e.target.value)}
+                placeholder="Örn. 250000"
                 className="mt-1 w-40 input"
               />
             </div>
@@ -203,9 +206,7 @@ export default function FranchiseBrandProfilePage() {
             </div>
           </div>
 
-          {saveError && axios.isAxiosError(saveError) ? (
-            <p className="text-[var(--danger)]">İşlem başarısız (POST/PATCH /franchise-owner/brand).</p>
-          ) : null}
+          {saveErrorMessage ? <p className="text-[var(--danger)]">{saveErrorMessage}</p> : null}
           {saveSuccess ? (
             <p className="text-sm text-emerald-400">{hasBrand ? "Güncellendi." : "Marka oluşturuldu."}</p>
           ) : null}

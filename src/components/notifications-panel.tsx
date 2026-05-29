@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "@/lib/api";
+import { formatRelativeTime } from "@/lib/format-time";
 
 function BellIcon({ className }: { className?: string }) {
   return (
@@ -114,7 +114,9 @@ export function NotificationsPanel() {
                       <span className="min-w-0 text-left">
                         <span className="notify-item-title">{n.title ?? "Bildirim"}</span>
                         {n.body ? <span className="notify-item-body">{n.body}</span> : null}
-                        {n.created_at ? <span className="notify-item-time">{n.created_at}</span> : null}
+                        {n.created_at ? (
+                          <span className="notify-item-time">{formatRelativeTime(n.created_at)}</span>
+                        ) : null}
                       </span>
                     </button>
                   </li>

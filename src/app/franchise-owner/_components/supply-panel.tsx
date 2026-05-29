@@ -2,7 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { ExportMenu } from "@/components/ui/export-menu";
 import { createBulkSupplyRequest, getMySupplyRequests, getSupplyPool, updateSupplyRequest } from "@/lib/api";
+import { downloadCsv, printTableAsPdf } from "@/lib/export-utils";
 import { SUPPLY_STATUS_LABEL } from "@/lib/routes";
 import { SupplyRequest, SupplyRequestStatus } from "@/lib/types";
 
@@ -65,6 +67,19 @@ export function SupplyPanel() {
     bulkMutation.mutate();
   };
 
+  const exportSupplyRows = () => {
+    const headers = ["ID", "Ürün", "Miktar", "Durum", "Tarih", "Not"];
+    const rows = myList.map((entry) => [
+      String(entry.id),
+      entry.product_name ?? "",
+      entry.quantity != null ? String(entry.quantity) : "",
+      SUPPLY_STATUS_LABEL[entry.status ?? "pending"] ?? entry.status ?? "",
+      entry.created_at ?? "",
+      entry.notes ?? "",
+    ]);
+    return { headers, rows };
+  };
+
   return (
     <div>
       <div className="card p-4">
@@ -105,7 +120,20 @@ export function SupplyPanel() {
       </div>
 
       <div className="mt-6 card p-4">
-        <h3 className="text-sm font-semibold">Siparişlerim</h3>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h3 className="text-sm font-semibold">Siparişlerim</h3>
+          <ExportMenu
+            disabled={myList.length === 0}
+            onExportCsv={() => {
+              const { headers, rows } = exportSupplyRows();
+              downloadCsv(`franchisehub-siparisler-${new Date().toISOString().slice(0, 10)}.csv`, [headers, ...rows]);
+            }}
+            onExportPdf={() => {
+              const { headers, rows } = exportSupplyRows();
+              printTableAsPdf("Siparişlerim", headers, rows);
+            }}
+          />
+        </div>
         {myRequestsQuery.isLoading ? <p className="mt-3 text-sm text-[var(--muted-foreground)]">Yükleniyor…</p> : null}
         <ul className="mt-3 space-y-2">
           {myList.map((entry) => (

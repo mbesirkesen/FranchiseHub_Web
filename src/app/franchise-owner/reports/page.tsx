@@ -3,26 +3,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { getFranchiseAnalytics, getInventory, getOutlets } from "@/lib/api";
+import { downloadCsv } from "@/lib/export-utils";
 import { InventoryItem } from "@/lib/types";
 
 const LOW_STOCK_THRESHOLD = 10;
-
-function downloadCsv(filename: string, rows: string[][]) {
-  const escape = (cell: string) => {
-    if (cell.includes('"') || cell.includes(",") || cell.includes("\n")) {
-      return `"${cell.replace(/"/g, '""')}"`;
-    }
-    return cell;
-  };
-  const body = rows.map((r) => r.map(escape).join(",")).join("\n");
-  const blob = new Blob([body], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 export default function FranchiseReportsPage() {
   const [threshold, setThreshold] = useState(String(LOW_STOCK_THRESHOLD));
@@ -73,7 +57,7 @@ export default function FranchiseReportsPage() {
     <div>
       <h2 className="page-title">Raporlar</h2>
       <p className="page-desc">
-        Envanter özetini burada toplayın; şube listesi backend ucu hazır olunca genişletilebilir.
+        Envanter özetinizi ve düşük stok uyarılarını tek ekranda takip edin; şube bazlı raporlar yakında eklenecek.
       </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -175,8 +159,11 @@ export default function FranchiseReportsPage() {
           </ul>
         ) : (
           <p className="page-desc">
-            Şube listesi için{" "}
-            <code className="text-[var(--primary-hover)]">GET /franchise-owner/outlets</code> veya şubeler sayfasını kullanın.
+            Henüz kayıtlı şube görünmüyor. Şubelerinizi eklemek ve yönetmek için{" "}
+            <a href="/franchise-owner/outlets" className="font-medium text-[var(--primary-hover)] underline-offset-2 hover:underline">
+              Şubeler
+            </a>{" "}
+            sayfasını kullanın.
           </p>
         )}
       </div>
