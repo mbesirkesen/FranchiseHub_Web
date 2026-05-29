@@ -1,63 +1,127 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { AuthLayout } from "@/components/ui/auth-layout";
+import { GlowInput } from "@/components/ui/glow-input";
+import { LoadingButton } from "@/components/ui/loading-button";
+import { PasswordInput } from "@/components/ui/password-input";
 import { resetPassword } from "@/lib/api";
-import { getBackendErrorMessage } from "@/lib/form-errors";
+import { getUserFacingError } from "@/lib/form-errors";
+import { passwordSchema } from "@/lib/form-schemas";
+
+const schema = z.object({
+  token: z.string().trim().min(1, "Sıfırlama kodu gerekli."),
+  new_password: passwordSchema,
+});
+
+type FormValues = z.infer<typeof schema>;
 
 function ResetForm() {
   const searchParams = useSearchParams();
   const tokenFromUrl = searchParams.get("token") ?? "";
-  const [token, setToken] = useState(tokenFromUrl);
-  const [password, setPassword] = useState("");
-  const [feedback, setFeedback] = useState<string | null>(null);
 
   const mutation = useMutation({
-    mutationFn: () => resetPassword({ token: token.trim(), new_password: password }),
-    onSuccess: () => setFeedback("Şifre güncellendi. Giriş yapabilirsiniz."),
-    onError: (e) => setFeedback(getBackendErrorMessage(e) ?? "Sıfırlama başarısız."),
+    mutationFn: (values: FormValues) =>
+      resetPassword({ token: values.token.trim(), new_password: values.new_password }),
   });
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      token: tokenFromUrl,
+      new_password: "",
+    },
+  });
+
+  const feedback = mutation.isSuccess
+    ? { type: "success" as const, message: "Şifre güncellendi. Giriş yapabilirsiniz." }
+    : mutation.isError
+      ? {
+          type: "error" as const,
+          message: getUserFacingError(mutation.error, "Sıfırlama başarısız. Bağlantı süresi dolmuş olabilir."),
+        }
+      : null;
+
   return (
-    <div className="glass-card w-full max-w-md rounded-3xl p-7">
-      <h1 className="text-2xl font-bold text-[var(--foreground)]">Yeni şifre</h1>
-      <input
-        value={token}
-        onChange={(e) => setToken(e.target.value)}
-        placeholder="Reset token"
-        className="mt-6 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--foreground)]"
-      />
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="Yeni şifre"
-        className="mt-3 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--foreground)]"
-      />
-      <button
-        type="button"
-        disabled={mutation.isPending || !token || password.length < 6}
-        onClick={() => mutation.mutate()}
-        className="mt-4 w-full rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
+    <AuthLayout
+      title="Yeni şifre belirleyin"
+      subtitle="E-postanızdaki bağlantıdaki kodu ve yeni şifrenizi girin."
+      footer={
+        <>
+          <p className="auth-footer-register">
+            Şifrenizi güncellediniz mi?{" "}
+            <Link href="/login" className="auth-footer-link-primary">
+              Giriş yapın
+            </Link>
+          </p>
+          <Link href="/forgot-password" className="auth-footer-home">
+            Yeni sıfırlama bağlantısı iste
+          </Link>
+        </>
+      }
+    >
+      <form
+        onSubmit={handleSubmit((values) => {
+          mutation.reset();
+          mutation.mutate(values);
+        })}
+        className="space-y-4"
       >
-        Şifreyi sıfırla
-      </button>
-      {feedback ? <p className="mt-4 text-sm text-[var(--muted-foreground)]">{feedback}</p> : null}
-      <Link href="/login" className="mt-4 block text-sm text-[var(--primary-hover)] underline">
-        Giriş
-      </Link>
-    </div>
+        {!tokenFromUrl ? (
+          <GlowInput
+            label="Sıfırlama kodu"
+            required
+            placeholder="E-postadaki kod veya token"
+            error={errors.token?.message}
+            {...register("token")}
+          />
+        ) : (
+          <input type="hidden" {...register("token")} />
+        )}
+
+        <PasswordInput
+          label="Yeni şifre"
+          required
+          autoComplete="new-password"
+          hint="En az 8 karakter, harf ve rakam içermeli"
+          error={errors.new_password?.message}
+          {...register("new_password")}
+        />
+
+        {feedback ? (
+          <p className={feedback.type === "success" ? "alert alert-success" : "alert alert-error"}>
+            {feedback.message}
+          </p>
+        ) : null}
+
+        <LoadingButton type="submit" loading={mutation.isPending} loadingText="Kaydediliyor">
+          Şifreyi sıfırla
+        </LoadingButton>
+      </form>
+    </AuthLayout>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <Suspense fallback={<p className="text-[var(--muted)]">Yükleniyor…</p>}>
-        <ResetForm />
-      </Suspense>
-    </div>
+    <Suspense
+      fallback={
+        <AuthLayout title="Yeni şifre belirleyin" subtitle="Yükleniyor…">
+          <p className="text-sm text-[var(--muted)]">Sayfa hazırlanıyor…</p>
+        </AuthLayout>
+      }
+    >
+      <ResetForm />
+    </Suspense>
   );
 }

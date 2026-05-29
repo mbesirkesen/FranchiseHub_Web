@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import { CountUp } from "@/components/motion/count-up";
 
 const rings = [
-  { size: 280, delay: 0 },
-  { size: 220, delay: 0.15 },
-  { size: 160, delay: 0.3 },
+  { size: 280, delay: 0, breathDuration: 5.5 },
+  { size: 220, delay: 0.15, breathDuration: 4.8 },
+  { size: 160, delay: 0.3, breathDuration: 4.2 },
 ];
 
 export function AuthShowcase() {
@@ -15,16 +15,22 @@ export function AuthShowcase() {
       <motion.div
         className="auth-showcase-orbit"
         animate={{ rotate: 360 }}
-        transition={{ duration: 48, repeat: Infinity, ease: "linear" }}
+        transition={{ duration: 56, repeat: Infinity, ease: "linear" }}
       >
         {rings.map((ring) => (
           <motion.span
             key={ring.size}
             className="auth-showcase-ring"
             style={{ width: ring.size, height: ring.size }}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: ring.delay, duration: 0.8 }}
+            initial={{ opacity: 0, scale: 0.82 }}
+            animate={{
+              opacity: [0.35, 0.7, 0.35],
+              scale: [0.96, 1.04, 0.96],
+            }}
+            transition={{
+              opacity: { delay: ring.delay, duration: ring.breathDuration, repeat: Infinity, ease: "easeInOut" },
+              scale: { delay: ring.delay, duration: ring.breathDuration, repeat: Infinity, ease: "easeInOut" },
+            }}
           />
         ))}
       </motion.div>

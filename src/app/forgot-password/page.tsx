@@ -2,45 +2,76 @@
 
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+import { AuthLayout } from "@/components/ui/auth-layout";
+import { GlowInput } from "@/components/ui/glow-input";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { forgotPassword } from "@/lib/api";
-import { getBackendErrorMessage } from "@/lib/form-errors";
+import { getUserFacingError } from "@/lib/form-errors";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const mutation = useMutation({
     mutationFn: () => forgotPassword({ email: email.trim() }),
-    onSuccess: () => setFeedback("Sıfırlama bağlantısı e-posta adresinize gönderildi."),
-    onError: (e) => setFeedback(getBackendErrorMessage(e) ?? "İstek gönderilemedi."),
+    onSuccess: () => {
+      setFeedback({ type: "success", message: "Sıfırlama bağlantısı e-posta adresinize gönderildi." });
+    },
+    onError: (e) => {
+      setFeedback({
+        type: "error",
+        message: getUserFacingError(e, "İstek gönderilemedi. E-posta adresinizi kontrol edin."),
+      });
+    },
   });
 
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || mutation.isPending) return;
+    setFeedback(null);
+    mutation.mutate();
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="glass-card w-full max-w-md rounded-3xl p-7">
-        <h1 className="text-2xl font-bold text-[var(--foreground)]">Şifremi unuttum</h1>
-        <p className="page-desc">E-posta ile sıfırlama bağlantısı alın.</p>
-        <input
+    <AuthLayout
+      title="Şifremi unuttum"
+      subtitle="Kayıtlı e-posta adresinize sıfırlama bağlantısı gönderelim."
+      footer={
+        <>
+          <p className="auth-footer-register">
+            Şifrenizi hatırladınız mı?{" "}
+            <Link href="/login" className="auth-footer-link-primary">
+              Giriş yapın
+            </Link>
+          </p>
+          <Link href="/" className="auth-footer-home">
+            Ana sayfa
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={onSubmit} className="space-y-4">
+        <GlowInput
+          label="E-posta"
           type="email"
+          required
+          autoComplete="email"
+          placeholder="ornek@mail.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="email@ornek.com"
-          className="mt-6 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--foreground)]"
         />
-        <button
-          type="button"
-          disabled={mutation.isPending || !email.trim()}
-          onClick={() => mutation.mutate()}
-          className="mt-4 w-full rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
-        >
-          Gönder
-        </button>
-        {feedback ? <p className="mt-4 text-sm text-[var(--muted-foreground)]">{feedback}</p> : null}
-        <Link href="/login" className="mt-4 block text-sm text-[var(--primary-hover)] underline">
-          Girişe dön
-        </Link>
-      </div>
-    </div>
+
+        {feedback ? (
+          <p className={feedback.type === "success" ? "alert alert-success" : "alert alert-error"}>
+            {feedback.message}
+          </p>
+        ) : null}
+
+        <LoadingButton type="submit" loading={mutation.isPending} loadingText="Gönderiliyor" disabled={!email.trim()}>
+          Sıfırlama bağlantısı gönder
+        </LoadingButton>
+      </form>
+    </AuthLayout>
   );
 }

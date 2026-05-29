@@ -5,18 +5,27 @@ import { InputHTMLAttributes, forwardRef, useState } from "react";
 
 type Props = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
+  required?: boolean;
   error?: string;
 };
 
 export const GlowInput = forwardRef<HTMLInputElement, Props>(function GlowInput(
-  { label, error, className, ...props },
+  { label, required, error, className, ...props },
   ref,
 ) {
   const [focused, setFocused] = useState(false);
 
   return (
     <div className="glow-field">
-      <label className="label">{label}</label>
+      <label className="label">
+        {label}
+        {required ? (
+          <span className="ml-0.5 text-[var(--danger)]" aria-hidden>
+            *
+          </span>
+        ) : null}
+        {required ? <span className="sr-only"> (zorunlu)</span> : null}
+      </label>
       <div className="glow-field-wrap">
         <motion.span
           className="glow-field-ring"
@@ -30,7 +39,9 @@ export const GlowInput = forwardRef<HTMLInputElement, Props>(function GlowInput(
         <input
           ref={ref}
           {...props}
-          className={`input glow-field-input ${className ?? ""}`}
+          required={required}
+          aria-required={required || undefined}
+          className={`input glow-field-input auth-focus-input ${className ?? ""}`}
           onFocus={(e) => {
             setFocused(true);
             props.onFocus?.(e);

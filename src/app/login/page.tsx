@@ -55,13 +55,13 @@ export default function LoginPage() {
       subtitle="Giriş sonrası rolünüze göre panele yönlendirilirsiniz."
       footer={
         <>
-          <Link href="/forgot-password" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
-            Şifremi unuttum
-          </Link>
-          <Link href="/register" className="block text-[var(--primary-hover)] hover:underline">
-            Hesabınız yok mu? Kayıt olun
-          </Link>
-          <Link href="/" className="block text-[var(--muted)] hover:text-[var(--foreground)]">
+          <p className="auth-footer-register">
+            Hesabınız yok mu?{" "}
+            <Link href="/register" className="auth-footer-link-primary">
+              Kayıt olun
+            </Link>
+          </p>
+          <Link href="/" className="auth-footer-home">
             Ana sayfa
           </Link>
         </>
@@ -77,6 +77,7 @@ export default function LoginPage() {
         <GlowInput
           label="E-posta"
           type="email"
+          required
           autoComplete="email"
           error={errors.email?.message}
           {...register("email")}
@@ -86,6 +87,11 @@ export default function LoginPage() {
           required
           autoComplete="current-password"
           error={errors.password?.message}
+          labelExtra={
+            <Link href="/forgot-password" className="auth-forgot-link">
+              Şifremi unuttum
+            </Link>
+          }
           {...register("password")}
         />
 

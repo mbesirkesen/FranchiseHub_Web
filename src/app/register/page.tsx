@@ -1,53 +1,53 @@
 import Link from "next/link";
-import { MarketingHeader } from "@/components/ui/marketing-header";
+import { AuthLayout } from "@/components/ui/auth-layout";
 
 const roles = [
   {
     href: "/register/buyer",
     title: "Franchise arıyorum",
     description: "Marka arayın ve başvurun. Onaydan sonra bayi olarak devam edersiniz.",
+    icon: "AR",
   },
   {
     href: "/register/franchise-owner",
     title: "Marka sahibiyim",
     description: "Franchise veren marka hesabı — başvurular ve günlük operasyon.",
+    icon: "MS",
   },
 ];
 
 export default function RegisterHubPage() {
   return (
-    <div className="page-shell min-h-screen">
-      <MarketingHeader />
-      <main className="page-container py-16">
-        <div className="mx-auto max-w-xl">
-          <p className="eyebrow">Kayıt</p>
-          <h1 className="display-title mt-3 text-3xl text-[var(--foreground)] md:text-4xl">
-            Hesap oluşturun
-          </h1>
-          <p className="page-desc">Size uygun hesap türünü seçin.</p>
-
-          <ul className="mt-8 space-y-3">
-            {roles.map((role) => (
-              <li key={role.href}>
-                <Link
-                  href={role.href}
-                  className="card-muted block p-5 transition hover:border-[rgba(201,162,39,0.3)] hover:bg-[var(--card-hover)]"
-                >
-                  <p className="font-semibold text-[var(--foreground)]">{role.title}</p>
-                  <p className="mt-1 text-sm text-[var(--muted-foreground)]">{role.description}</p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-
-          <p className="mt-8 text-sm text-[var(--muted-foreground)]">
+    <AuthLayout
+      title="Hesap oluşturun"
+      subtitle="Size uygun hesap türünü seçin — birkaç dakika sürer."
+      footer={
+        <>
+          <p className="auth-footer-register">
             Zaten hesabınız var mı?{" "}
-            <Link href="/login" className="text-[var(--primary-hover)] hover:underline">
+            <Link href="/login" className="auth-footer-link-primary">
               Giriş yapın
             </Link>
           </p>
-        </div>
-      </main>
-    </div>
+          <Link href="/" className="auth-footer-home">
+            Ana sayfa
+          </Link>
+        </>
+      }
+    >
+      <ul className="auth-role-list">
+        {roles.map((role) => (
+          <li key={role.href}>
+            <Link href={role.href} className="auth-role-card">
+              <span className="auth-role-icon">{role.icon}</span>
+              <span>
+                <span className="auth-role-title">{role.title}</span>
+                <span className="auth-role-desc">{role.description}</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </AuthLayout>
   );
 }

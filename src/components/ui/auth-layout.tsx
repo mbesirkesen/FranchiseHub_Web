@@ -10,9 +10,10 @@ type Props = {
   subtitle?: string;
   children: ReactNode;
   footer?: ReactNode;
+  wide?: boolean;
 };
 
-export function AuthLayout({ title, subtitle, children, footer }: Props) {
+export function AuthLayout({ title, subtitle, children, footer, wide }: Props) {
   return (
     <div className="page-shell flex min-h-screen">
       <div className="auth-hero hidden w-[44%] flex-col justify-between p-12 lg:flex">
@@ -30,7 +31,7 @@ export function AuthLayout({ title, subtitle, children, footer }: Props) {
 
       <div className="flex flex-1 items-center justify-center px-4 py-12">
         <motion.div
-          className="w-full max-w-md"
+          className={`w-full ${wide ? "max-w-lg" : "max-w-md"}`}
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
@@ -41,12 +42,12 @@ export function AuthLayout({ title, subtitle, children, footer }: Props) {
               <span className="brand-mark-text">FranchiseHub</span>
             </Link>
           </div>
-          <div className="glass-form">
+          <div className="glass-form auth-form-panel">
             <h1 className="display-title text-3xl text-[var(--foreground)]">{title}</h1>
             {subtitle ? <p className="mt-2 text-sm text-[var(--muted-foreground)]">{subtitle}</p> : null}
             <div className="mt-8">{children}</div>
           </div>
-          {footer ? <div className="mt-6 space-y-2 text-center text-sm">{footer}</div> : null}
+          {footer ? <div className="auth-footer">{footer}</div> : null}
         </motion.div>
       </div>
     </div>
