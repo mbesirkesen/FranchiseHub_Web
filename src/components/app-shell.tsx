@@ -2,28 +2,26 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { NotificationsPanel } from "@/components/notifications-panel";
 import { clearSession, getUserRole } from "@/lib/auth";
 import { getActiveSideNavHref, getRoleRoute, SideNavItem } from "@/lib/routes";
 import { UserRole } from "@/lib/types";
 
 const roleRoutes: SideNavItem[] = [
-  { href: "/buyer", label: "Buyer" },
-  { href: "/franchise-owner", label: "Franchise Owner" },
-  { href: "/admin", label: "Admin" },
+  { href: "/buyer", label: "Franchise arayan" },
+  { href: "/franchise-owner", label: "Marka sahibi" },
 ];
 
 function roleDisplayLabel(role: UserRole | null): string {
-  if (role === "franchise_owner") return "Franchise sahibi";
-  if (role === "buyer") return "Alıcı";
-  if (role === "admin") return "Yönetici";
+  if (role === "franchise_owner") return "Marka sahibi";
+  if (role === "buyer") return "Franchise arayan";
   return "—";
 }
 
 type Props = {
   children: ReactNode;
   title: string;
-  /** Verilirse sol menüde yalnızca bu bağlantılar gösterilir; rol panelleri arası geçiş gösterilmez. */
   sideNav?: SideNavItem[];
   asideTitle?: string;
 };
@@ -32,6 +30,7 @@ export function AppShell({ children, title, sideNav, asideTitle }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [role, setRole] = useState<UserRole | null>(null);
+  const [searchQ, setSearchQ] = useState("");
 
   useEffect(() => {
     setRole(getUserRole());
@@ -44,46 +43,76 @@ export function AppShell({ children, title, sideNav, asideTitle }: Props) {
   );
   const sidebarHeading = asideTitle ?? (sideNav ? "Menü" : "Roller");
   const showRoleSwitcher = !sideNav;
+  const showToolbar = Boolean(sideNav);
 
   const logout = () => {
     clearSession();
     router.replace("/login");
   };
 
+  const onSearch = (e: FormEvent) => {
+    e.preventDefault();
+    const q = searchQ.trim();
+    if (q) {
+      router.push(`/search?q=${encodeURIComponent(q)}`);
+    }
+  };
+
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-slate-400/20 bg-slate-950/35 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">FranchiseHub Web</p>
-            <h1 className="mt-0.5 text-xl font-bold tracking-tight text-slate-50">{title}</h1>
+    <div className="page-shell min-h-screen">
+      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[rgba(9,11,16,0.88)] backdrop-blur-xl">
+        <div className="page-container flex flex-wrap items-center justify-between gap-4 py-4">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--primary)] text-xs font-bold text-[var(--primary-foreground)]">
+                FH
+              </span>
+              <div className="hidden sm:block">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
+                  FranchiseHub
+                </p>
+                <h1 className="text-sm font-semibold text-[var(--foreground)]">{title}</h1>
+              </div>
+            </Link>
           </div>
-          <button
-            type="button"
-            onClick={logout}
-            className="rounded-xl border border-slate-400/40 bg-slate-900/40 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-cyan-300/60 hover:bg-slate-900/60"
-          >
-            Çıkış Yap
-          </button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {showToolbar ? (
+              <form onSubmit={onSearch} className="hidden sm:block">
+                <input
+                  value={searchQ}
+                  onChange={(e) => setSearchQ(e.target.value)}
+                  placeholder="Ara…"
+                  className="input w-40 md:w-52"
+                />
+              </form>
+            ) : null}
+            {showToolbar ? <NotificationsPanel /> : null}
+            {showToolbar ? (
+              <Link href="/profile" className="btn btn-secondary btn-sm">
+                Profil
+              </Link>
+            ) : null}
+            <button type="button" onClick={logout} className="btn btn-ghost btn-sm">
+              Çıkış
+            </button>
+          </div>
         </div>
       </header>
-      <main className="mx-auto flex w-full max-w-6xl gap-6 px-4 py-8">
-        <aside className="glass-card w-56 shrink-0 rounded-2xl p-4">
-          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+
+      <div className="page-container flex gap-6 py-8">
+        <aside className="card hidden w-56 shrink-0 p-4 md:block">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             {sidebarHeading}
           </p>
-          <nav className="space-y-1.5">
+          <nav className="space-y-1">
             {navItems.map((item) => {
               const active = item.href === activeHref;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`block rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                    active
-                      ? "bg-gradient-to-r from-violet-500 to-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20"
-                      : "border border-slate-500/30 bg-slate-950/35 text-slate-200 hover:border-cyan-400/40 hover:bg-slate-900/50"
-                  }`}
+                  className={active ? "nav-link nav-link-active" : "nav-link"}
                 >
                   {item.label}
                 </Link>
@@ -92,25 +121,26 @@ export function AppShell({ children, title, sideNav, asideTitle }: Props) {
           </nav>
           {showRoleSwitcher ? (
             <>
-              <p className="mt-5 text-xs text-slate-500">Aktif rol: {roleDisplayLabel(role)}</p>
+              <p className="mt-6 text-xs text-[var(--muted)]">Aktif rol: {roleDisplayLabel(role)}</p>
               {role ? (
                 <button
                   type="button"
                   onClick={() => router.push(getRoleRoute(role))}
-                  className="mt-2 w-full rounded-xl border border-slate-500/35 bg-slate-950/40 px-3 py-2 text-xs text-slate-200 hover:border-cyan-400/35"
+                  className="btn btn-secondary btn-sm btn-block mt-2"
                 >
-                  Kendi panelime git
+                  Panele git
                 </button>
               ) : null}
             </>
           ) : (
-            <p className="mt-5 border-t border-slate-500/20 pt-4 text-[11px] leading-relaxed text-slate-500">
+            <p className="mt-6 border-t border-[var(--border)] pt-4 text-xs text-[var(--muted)]">
               {roleDisplayLabel(role)}
             </p>
           )}
         </aside>
-        <section className="glass-card min-w-0 flex-1 rounded-2xl p-6 md:p-8">{children}</section>
-      </main>
+
+        <section className="card min-w-0 flex-1 p-6 md:p-8">{children}</section>
+      </div>
     </div>
   );
 }
