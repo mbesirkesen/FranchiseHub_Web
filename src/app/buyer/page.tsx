@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { ApplicationTimeline } from "@/components/buyer/application-timeline";
 import { BentoActionLink } from "@/components/interaction/bento-action-link";
 import { BentoCell, BentoGrid } from "@/components/interaction/bento-grid";
 import { MagneticButton } from "@/components/interaction/magnetic-button";
@@ -40,24 +41,47 @@ export default function BuyerHomePage() {
 
     return (
       <BentoGrid>
-        <BentoCell span="2" className="flex flex-col justify-center">
+        <BentoCell span="2" className="bento-cell-hero">
           <p className="bento-hero-title">{isBayi ? "Bayi hesabınız" : "Başvurunuz devam ediyor"}</p>
           <p className="bento-hero-sub">
             {focusApp
               ? (APPLICATION_STATUS_HINT[focusApp.status] ?? "Başvurum sayfasından takip edin.")
               : "Marka sizinle iletişime geçecek."}
           </p>
+          {focusApp ? (
+            <ApplicationTimeline
+              status={focusApp.status}
+              createdAt={focusApp.created_at}
+              variant="bar"
+            />
+          ) : null}
         </BentoCell>
 
         {focusApp ? (
-          <BentoCell className="flex flex-col justify-center gap-3">
+          <BentoCell className="flex flex-col justify-center gap-3 bento-cell-accent">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
               Başvuru #{focusApp.id}
             </p>
-            <StatusPill status={focusApp.status} />
+            <div className="status-live-wrap">
+              <StatusPill status={focusApp.status} live={focusApp.status === "pending"} />
+              {focusApp.status === "pending" ? (
+                <ApplicationTimeline
+                  status={focusApp.status}
+                  createdAt={focusApp.created_at}
+                  variant="micro"
+                />
+              ) : null}
+            </div>
             <MagneticButton strength={0.18}>
-              <Link href={`/buyer/applications/${focusApp.id}`} className="btn btn-primary btn-sm w-fit">
-                Mesajlara bak
+              <Link
+                href={
+                  focusApp.status === "approved"
+                    ? `/buyer/messages/${focusApp.id}`
+                    : `/buyer/applications/${focusApp.id}`
+                }
+                className="btn btn-primary btn-sm w-fit btn-glow"
+              >
+                {focusApp.status === "approved" ? "Mesajlara bak" : "Başvuruyu gör"}
               </Link>
             </MagneticButton>
           </BentoCell>
