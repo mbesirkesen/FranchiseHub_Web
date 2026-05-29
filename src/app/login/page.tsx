@@ -2,19 +2,23 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { AuthLayout } from "@/components/ui/auth-layout";
+import { GlowInput } from "@/components/ui/glow-input";
+import { PasswordInput } from "@/components/ui/password-input";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { login } from "@/lib/api";
 import { getRoleFromToken, setSession } from "@/lib/auth";
+import { getUserFacingError } from "@/lib/form-errors";
 import { getRoleRoute } from "@/lib/routes";
 
 const loginSchema = z.object({
-  email: z.string().email("Gecerli bir email girin."),
-  password: z.string().min(6, "Sifre en az 6 karakter olmali."),
+  email: z.string().email("Geçerli bir e-posta girin."),
+  password: z.string().min(6, "Şifre en az 6 karakter olmalı."),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -27,12 +31,10 @@ export default function LoginPage() {
     mutationFn: login,
     onSuccess: (data) => {
       const role = getRoleFromToken(data.access_token);
-
       if (!role) {
-        setRoleParseError("Token role alani okunamadi. Backend kontratini kontrol edin.");
+        setRoleParseError("Bu hesap türü desteklenmiyor. Marka sahibi veya franchise arayan hesabı kullanın.");
         return;
       }
-
       setRoleParseError(null);
       setSession(data.access_token, role);
       router.replace(getRoleRoute(role));
@@ -47,99 +49,57 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (values: LoginFormValues) => {
-    setRoleParseError(null);
-    mutate({
-      email: values.email,
-      password: values.password,
-    });
-  };
-
-  const backendErrorMessage = (() => {
-    if (!error || !axios.isAxiosError(error)) {
-      return null;
-    }
-
-    const detail = error.response?.data?.detail;
-    if (typeof detail === "string") {
-      return detail;
-    }
-
-    if (Array.isArray(detail)) {
-      return detail
-        .map((item) => {
-          const loc = Array.isArray(item?.loc) ? item.loc.join(".") : "field";
-          const msg = typeof item?.msg === "string" ? item.msg : "validation error";
-          return `${loc}: ${msg}`;
-        })
-        .join(" | ");
-    }
-
-    return null;
-  })();
-
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="glass-card w-full max-w-md rounded-3xl p-7">
-        <p className="script-title text-3xl text-cyan-300">Welcome back</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">FranchiseHub Giris</h1>
-        <p className="mt-2 text-sm text-slate-300">Backend API ile bagli JWT giris ekrani.</p>
+    <AuthLayout
+      title="Tekrar hoş geldiniz"
+      subtitle="Giriş sonrası rolünüze göre panele yönlendirilirsiniz."
+      footer={
+        <>
+          <Link href="/forgot-password" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
+            Şifremi unuttum
+          </Link>
+          <Link href="/register" className="block text-[var(--primary-hover)] hover:underline">
+            Hesabınız yok mu? Kayıt olun
+          </Link>
+          <Link href="/" className="block text-[var(--muted)] hover:text-[var(--foreground)]">
+            Ana sayfa
+          </Link>
+        </>
+      }
+    >
+      <form
+        onSubmit={handleSubmit((values) => {
+          setRoleParseError(null);
+          mutate(values);
+        })}
+        className="space-y-4"
+      >
+        <GlowInput
+          label="E-posta"
+          type="email"
+          autoComplete="email"
+          error={errors.email?.message}
+          {...register("email")}
+        />
+        <PasswordInput
+          label="Şifre"
+          required
+          autoComplete="current-password"
+          error={errors.password?.message}
+          {...register("password")}
+        />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
-          <div>
-            <label className="text-sm font-medium text-slate-100">Email</label>
-            <input
-              type="email"
-              {...register("email")}
-              className="mt-1 w-full rounded-xl border border-slate-500/40 bg-slate-950/40 px-3 py-2 text-slate-100 outline-none focus:border-cyan-300"
-            />
-            {errors.email ? (
-              <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
-            ) : null}
-          </div>
+        {error ? (
+          <p className="alert alert-error">
+            {getUserFacingError(error, "Giriş başarısız. E-posta ve şifrenizi kontrol edin.")}
+          </p>
+        ) : null}
+        {roleParseError ? <p className="alert alert-error">{roleParseError}</p> : null}
 
-          <div>
-            <label className="text-sm font-medium text-slate-100">Sifre</label>
-            <input
-              type="password"
-              {...register("password")}
-              className="mt-1 w-full rounded-xl border border-slate-500/40 bg-slate-950/40 px-3 py-2 text-slate-100 outline-none focus:border-cyan-300"
-            />
-            {errors.password ? (
-              <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
-            ) : null}
-          </div>
-
-          <div>
-            <p className="text-xs text-slate-300">
-              Rol secimi token icindeki `role` claim alanindan otomatik okunur.
-            </p>
-          </div>
-
-          {error ? (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              Giris basarisiz.
-              {backendErrorMessage ? ` Detay: ${backendErrorMessage}` : " Backend loglarini kontrol edin."}
-            </p>
-          ) : null}
-          {roleParseError ? (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              {roleParseError}
-            </p>
-          ) : null}
-
-          <button
-            disabled={isPending}
-            className="w-full rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-3 py-2 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isPending ? "Giris yapiliyor..." : "Giris Yap"}
-          </button>
-        </form>
-
-        <Link href="/" className="mt-4 inline-block text-sm text-slate-300 underline">
-          Ana sayfaya don
-        </Link>
-      </div>
-    </div>
+        <LoadingButton type="submit" loading={isPending} loadingText="Giriş yapılıyor">
+          Giriş yap
+        </LoadingButton>
+      </form>
+    </AuthLayout>
   );
 }
