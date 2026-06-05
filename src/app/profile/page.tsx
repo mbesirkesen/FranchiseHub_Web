@@ -2,11 +2,34 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { GlowInput } from "@/components/ui/glow-input";
+import { LoadingButton } from "@/components/ui/loading-button";
+import { PasswordInput } from "@/components/ui/password-input";
+import { Skeleton } from "@/components/interaction/skeleton";
 import { changePassword, getMe, updateMe } from "@/lib/api";
-import { getBackendErrorMessage } from "@/lib/form-errors";
-import { getRoleRoute } from "@/lib/routes";
 import { getUserRole } from "@/lib/auth";
+import { getUserFacingError } from "@/lib/form-errors";
+import { getRoleRoute } from "@/lib/routes";
+import { UserProfile } from "@/lib/types";
+
+function profileToFormFields(profile: UserProfile) {
+  let firstName = profile.first_name?.trim() ?? "";
+  let lastName = profile.last_name?.trim() ?? "";
+
+  if (!firstName && !lastName && profile.full_name?.trim()) {
+    const parts = profile.full_name.trim().split(/\s+/);
+    firstName = parts[0] ?? "";
+    lastName = parts.slice(1).join(" ");
+  }
+
+  return {
+    firstName,
+    lastName,
+    phone: profile.phone ?? "",
+    city: profile.city ?? "",
+  };
+}
 
 export default function ProfilePage() {
   const queryClient = useQueryClient();
@@ -18,19 +41,23 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [formReady, setFormReady] = useState(false);
 
   const profileQuery = useQuery({
-    queryKey: ["profile-me"],
-    queryFn: async () => {
-      const data = await getMe();
-      setFirstName(data.first_name ?? "");
-      setLastName(data.last_name ?? "");
-      setPhone(data.phone ?? "");
-      setCity(data.city ?? "");
-      return data;
-    },
+    queryKey: ["me"],
+    queryFn: () => getMe(),
     retry: false,
   });
+
+  useEffect(() => {
+    if (!profileQuery.data) return;
+    const fields = profileToFormFields(profileQuery.data);
+    setFirstName(fields.firstName);
+    setLastName(fields.lastName);
+    setPhone(fields.phone);
+    setCity(fields.city);
+    setFormReady(true);
+  }, [profileQuery.data]);
 
   const updateMutation = useMutation({
     mutationFn: () =>
@@ -42,9 +69,9 @@ export default function ProfilePage() {
       }),
     onSuccess: () => {
       setFeedback("Profil güncellendi.");
-      queryClient.invalidateQueries({ queryKey: ["profile-me"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
     },
-    onError: (e) => setFeedback(getBackendErrorMessage(e) ?? "Güncelleme başarısız."),
+    onError: (e) => setFeedback(getUserFacingError(e, "Güncelleme başarısız.")),
   });
 
   const passwordMutation = useMutation({
@@ -54,79 +81,71 @@ export default function ProfilePage() {
       setNewPassword("");
       setFeedback("Şifre değiştirildi.");
     },
-    onError: (e) => setFeedback(getBackendErrorMessage(e) ?? "Şifre değiştirilemedi."),
+    onError: (e) => setFeedback(getUserFacingError(e, "Şifre değiştirilemedi.")),
   });
 
   const profile = profileQuery.data;
+  const loading = profileQuery.isLoading || (!profileQuery.isError && !formReady);
 
   return (
-    <div className="glass-card rounded-3xl p-7">
-      <h1 className="text-2xl font-bold text-[var(--foreground)]">Profil</h1>
+    <div className="card p-6 md:p-7">
+      <h1 className="page-title">Profil</h1>
       {profileQuery.isError ? (
-        <p className="mt-2 text-[var(--danger)]">Profil yüklenemedi.</p>
+        <p className="mt-2 alert alert-error">Profil yüklenemedi. Oturumunuzu kontrol edip tekrar deneyin.</p>
       ) : null}
       {profile?.email ? <p className="page-desc">{profile.email}</p> : null}
       {role ? (
-        <Link href={getRoleRoute(role)} className="mt-2 inline-block text-sm text-[var(--primary-hover)] underline">
+        <Link href={getRoleRoute(role)} className="mt-2 inline-block text-sm font-medium text-[var(--primary-hover)] underline-offset-2 hover:underline">
           Panele dön
         </Link>
       ) : null}
 
-      <section className="mt-8 space-y-3">
+      <section className="mt-8 space-y-4">
         <h2 className="text-sm font-semibold text-[var(--foreground)]">Kişisel bilgiler</h2>
-        <Input label="Ad" value={firstName} onChange={setFirstName} />
-        <Input label="Soyad" value={lastName} onChange={setLastName} />
-        <Input label="Telefon" value={phone} onChange={setPhone} />
-        <Input label="Şehir" value={city} onChange={setCity} />
-        <button
-          type="button"
-          disabled={updateMutation.isPending}
-          onClick={() => updateMutation.mutate()}
-          className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
-        >
-          Kaydet
-        </button>
+        {loading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        ) : (
+          <>
+            <GlowInput label="Ad" value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" />
+            <GlowInput label="Soyad" value={lastName} onChange={(e) => setLastName(e.target.value)} autoComplete="family-name" />
+            <GlowInput label="Telefon" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
+            <GlowInput label="Şehir" value={city} onChange={(e) => setCity(e.target.value)} autoComplete="address-level2" />
+            <LoadingButton
+              type="button"
+              loading={updateMutation.isPending}
+              loadingText="Kaydediliyor…"
+              onClick={() => updateMutation.mutate()}
+              className="w-fit"
+            >
+              Kaydet
+            </LoadingButton>
+          </>
+        )}
       </section>
 
-      <section className="mt-8 space-y-3 border-t border-[var(--border)] pt-8">
+      <section className="mt-8 space-y-4 border-t border-[var(--border)] pt-8">
         <h2 className="text-sm font-semibold text-[var(--foreground)]">Şifre değiştir</h2>
-        <Input label="Mevcut şifre" value={currentPassword} onChange={setCurrentPassword} type="password" />
-        <Input label="Yeni şifre" value={newPassword} onChange={setNewPassword} type="password" />
+        <PasswordInput label="Mevcut şifre" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} autoComplete="current-password" />
+        <PasswordInput label="Yeni şifre" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" />
         <button
           type="button"
           disabled={passwordMutation.isPending || !currentPassword || !newPassword}
           onClick={() => passwordMutation.mutate()}
-          className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm text-[var(--foreground)] disabled:opacity-50"
+          className="btn btn-secondary btn-sm disabled:opacity-50"
         >
-          Şifreyi güncelle
+          {passwordMutation.isPending ? "Güncelleniyor…" : "Şifreyi güncelle"}
         </button>
       </section>
 
-      {feedback ? <p className="mt-6 text-sm text-[var(--muted-foreground)]">{feedback}</p> : null}
-    </div>
-  );
-}
-
-function Input({
-  label,
-  value,
-  onChange,
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-}) {
-  return (
-    <div>
-      <label className="text-xs text-[var(--muted)]">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--foreground)]"
-      />
+      {feedback ? (
+        <p className={`mt-6 text-sm ${feedback.includes("başarısız") || feedback.includes("değiştirilemedi") ? "text-[var(--danger)]" : "text-[var(--success)]"}`}>
+          {feedback}
+        </p>
+      ) : null}
     </div>
   );
 }

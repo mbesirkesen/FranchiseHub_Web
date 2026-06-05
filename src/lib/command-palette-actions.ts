@@ -21,7 +21,7 @@ export function getCommandActions(role: UserRole | null): CommandAction[] {
     return [
       ...common,
       { id: "fo-apps", label: "Başvurular", href: "/franchise-owner/applications", group: "Marka sahibi", keywords: ["onay", "talep"] },
-      { id: "fo-stock", label: "Depo & sipariş", href: "/franchise-owner/stock", group: "Marka sahibi", keywords: ["envanter", "tedarik"] },
+      { id: "fo-stock", label: "Tedarik yönetimi", href: "/franchise-owner/stock", group: "Marka sahibi", keywords: ["tedarik", "malzeme", "depo", "bayi"] },
       { id: "fo-brand", label: "Markam", href: "/franchise-owner/brand", group: "Marka sahibi", keywords: ["profil", "vitrin"] },
     ];
   }

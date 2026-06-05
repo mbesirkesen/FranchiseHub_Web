@@ -15,7 +15,9 @@ export function BudgetSlider({ budget, matchCount, onChange }: Props) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm font-bold text-[var(--foreground)]">Yatırım bütçeniz</p>
-          <p className="text-xs text-[var(--muted)]">Kaydırın — eşleşen markalar anında güncellenir</p>
+          <p className="text-xs text-[var(--muted)]">
+            Maksimum bütçeniz — bu tutarı karşılayabileceğiniz markalar gösterilir
+          </p>
         </div>
         <motion.p
           key={budget}
@@ -42,7 +44,7 @@ export function BudgetSlider({ budget, matchCount, onChange }: Props) {
         <span>5M ₺</span>
       </div>
       <p className="mt-4 text-sm text-[var(--muted-foreground)]">
-        <CountUp key={matchCount} value={matchCount} /> marka bütçenize uygun
+        <CountUp key={matchCount} value={matchCount} /> marka bütçenizle uyumlu
       </p>
     </div>
   );

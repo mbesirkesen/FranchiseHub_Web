@@ -35,10 +35,10 @@ export default function FranchiseOwnerHomePage() {
   const apps = applicationsQuery.data ?? [];
   const pendingCount = s?.pending_applications ?? 0;
   const loading = summaryQuery.isLoading || applicationsQuery.isLoading;
-  const lowStockHint =
-    s && s.inventory_item_count != null && s.inventory_item_count === 0
-      ? "Depoya ürün ekleyin"
-      : "Stok ve malzeme siparişi";
+  const supplyHint =
+    s && s.supply_requests_pending != null && s.supply_requests_pending > 0
+      ? `${s.supply_requests_pending} bayi talebi bekliyor`
+      : "Bayi talepleri ve merkez deposu";
 
   const recentApps = useMemo(() => {
     return [...apps].sort((a, b) => parseAppDate(b) - parseAppDate(a)).slice(0, 3);
@@ -105,10 +105,10 @@ export default function FranchiseOwnerHomePage() {
         <BentoCell data-tour="fo-stock">
           <BentoActionLink
             href="/franchise-owner/stock"
-            title="Depo & sipariş"
-            description={lowStockHint}
+            title="Tedarik yönetimi"
+            description={supplyHint}
             accent="teal"
-            icon="DP"
+            icon="TD"
           />
         </BentoCell>
         <BentoCell>

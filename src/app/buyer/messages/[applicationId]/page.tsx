@@ -5,7 +5,7 @@ export default function BuyerMessageThreadPage() {
     <MessageThreadPage
       viewer="buyer"
       inboxPath="/buyer/messages"
-      applicationDetailPath={(id) => `/buyer/applications/${id}`}
+      applicationDetailBasePath="/buyer/applications"
     />
   );
 }

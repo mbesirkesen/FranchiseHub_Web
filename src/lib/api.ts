@@ -3,6 +3,7 @@ import { parseCompareResult } from "@/lib/compare-utils";
 import { clearSession, getAccessToken } from "@/lib/auth";
 import { parseFranchiseDashboardSummary } from "@/lib/dashboard-summary";
 import { normalizeList } from "@/lib/list-utils";
+import { normalizeUserProfile } from "@/lib/user-profile";
 import {
   Application,
   ApplicationCreateRequest,
@@ -20,6 +21,7 @@ import {
   BuyerDashboardSummary,
   BuyerQualificationRequest,
   BuyerRegisterRequest,
+  BuyerSupplyRequestCreate,
   ChangePasswordRequest,
   ConversationItem,
   ConversationSummary,
@@ -41,6 +43,7 @@ import {
   ResetPasswordRequest,
   SearchResults,
   SupplyBulkRequest,
+  SupplyPoolItem,
   SupplyRequest,
   SupplyRequestUpdateRequest,
   Territory,
@@ -97,13 +100,13 @@ export async function registerFranchiseOwner(payload: FranchiseOwnerRegisterRequ
 }
 
 export async function getMe(): Promise<UserProfile> {
-  const response = await api.get<UserProfile>("/auth/me");
-  return response.data;
+  const response = await api.get<unknown>("/auth/me");
+  return normalizeUserProfile(response.data);
 }
 
 export async function updateMe(payload: ProfileUpdateRequest) {
-  const response = await api.patch<UserProfile>("/auth/me", payload);
-  return response.data;
+  const response = await api.patch<unknown>("/auth/me", payload);
+  return normalizeUserProfile(response.data);
 }
 
 export async function changePassword(payload: ChangePasswordRequest) {
@@ -343,13 +346,17 @@ export async function getFranchiseAnalytics(): Promise<FranchiseAnalytics> {
   };
 }
 
-export async function getInventory() {
-  const response = await api.get<unknown>("/inventory");
+export async function getInventory(options?: { scope?: "center" | "outlet" | "all" }) {
+  const params =
+    options?.scope && options.scope !== "all" ? { scope: options.scope } : undefined;
+  const response = await api.get<unknown>("/inventory", { params });
   return normalizeList<InventoryItem>(response.data);
 }
 
-export async function getLowStockInventory(threshold = 10) {
-  const response = await api.get<unknown>("/inventory/low-stock", { params: { threshold } });
+export async function getLowStockInventory(threshold = 10, scope?: "center" | "outlet") {
+  const response = await api.get<unknown>("/inventory/low-stock", {
+    params: { threshold, ...(scope ? { scope } : {}) },
+  });
   return normalizeList<InventoryItem>(response.data);
 }
 
@@ -377,6 +384,33 @@ export async function getMySupplyRequests() {
   return normalizeList<SupplyRequest>(response.data);
 }
 
+export async function getIncomingSupplyRequests() {
+  const response = await api.get<unknown>("/supply-requests", {
+    params: { source: "incoming" },
+  });
+  return normalizeList<SupplyRequest>(response.data);
+}
+
+export async function getBuyerSupplyRequests() {
+  const response = await api.get<SupplyRequest[]>("/buyer/supply-requests");
+  return response.data ?? [];
+}
+
+export async function createBuyerSupplyRequest(payload: BuyerSupplyRequestCreate) {
+  const response = await api.post<SupplyRequest>("/buyer/supply-requests", payload);
+  return response.data;
+}
+
+export async function getBuyerBrandOutlets(brandId: number) {
+  const response = await api.get<unknown>(`/buyer/brands/${brandId}/outlets`);
+  return normalizeList<Outlet>(response.data);
+}
+
+export async function getBuyerBrandCenterInventory(brandId: number) {
+  const response = await api.get<unknown>(`/buyer/brands/${brandId}/center-inventory`);
+  return normalizeList<InventoryItem>(response.data);
+}
+
 export async function getSupplyRequestById(id: number) {
   const response = await api.get<SupplyRequest>(`/supply-requests/${id}`);
   return response.data;
@@ -394,7 +428,7 @@ export async function createBulkSupplyRequest(payload: SupplyBulkRequest) {
 
 export async function getSupplyPool() {
   const response = await api.get<unknown>("/supply-requests/pool");
-  return normalizeList<SupplyRequest>(response.data);
+  return normalizeList<SupplyPoolItem>(response.data);
 }
 
 function normalizeAssistantResponse(data: AssistantQueryResponse): AssistantQueryResponse {

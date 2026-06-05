@@ -17,8 +17,8 @@ const STEPS = [
   },
   {
     target: '[data-tour="fo-stock"]',
-    title: "Depo & sipariş",
-    body: "Stoklarınızı takip edin, azalan ürünleri görün ve merkeze malzeme siparişi gönderin.",
+    title: "Tedarik yönetimi",
+    body: "Bayi malzeme taleplerini onaylayın; merkez deposundaki stoku buradan yönetin.",
   },
   {
     target: '[data-tour="fo-ecosystem"]',
@@ -33,6 +33,20 @@ type SpotlightRect = {
   width: number;
   height: number;
 };
+
+function measureTarget(selector: string): SpotlightRect | null {
+  const el = document.querySelector(selector);
+  if (!el) return null;
+  const rect = el.getBoundingClientRect();
+  if (rect.width < 1 || rect.height < 1) return null;
+  const pad = 8;
+  return {
+    top: rect.top - pad,
+    left: rect.left - pad,
+    width: rect.width + pad * 2,
+    height: rect.height + pad * 2,
+  };
+}
 
 export function FranchiseOwnerTour() {
   const [visible, setVisible] = useState(false);
@@ -49,35 +63,54 @@ export function FranchiseOwnerTour() {
   const updateSpotlight = useCallback(() => {
     const selector = STEPS[step]?.target;
     if (!selector) return;
-    const el = document.querySelector(selector);
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const pad = 8;
-    setSpotlight({
-      top: rect.top - pad,
-      left: rect.left - pad,
-      width: rect.width + pad * 2,
-      height: rect.height + pad * 2,
-    });
+    setSpotlight(measureTarget(selector));
   }, [step]);
 
   useEffect(() => {
     if (!visible) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible) return;
+
     const selector = STEPS[step]?.target;
     const el = selector ? document.querySelector(selector) : null;
-    el?.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-    updateSpotlight();
-    window.addEventListener("resize", updateSpotlight);
-    window.addEventListener("scroll", updateSpotlight, true);
+    el?.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+
+    const sync = () => {
+      requestAnimationFrame(() => {
+        updateSpotlight();
+      });
+    };
+
+    sync();
+    const t = window.setTimeout(sync, 50);
+
+    let raf = 0;
+    const onLayout = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(updateSpotlight);
+    };
+
+    window.addEventListener("resize", onLayout);
     return () => {
-      window.removeEventListener("resize", updateSpotlight);
-      window.removeEventListener("scroll", updateSpotlight, true);
+      window.clearTimeout(t);
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onLayout);
     };
   }, [visible, step, updateSpotlight]);
 
   const finish = () => {
     localStorage.setItem(STORAGE_KEY, "1");
     setVisible(false);
+    setSpotlight(null);
   };
 
   const next = () => {
@@ -91,8 +124,6 @@ export function FranchiseOwnerTour() {
   if (!visible || !spotlight) return null;
 
   const current = STEPS[step];
-  const cardTop = Math.min(spotlight.top + spotlight.height + 16, window.innerHeight - 220);
-  const cardLeft = Math.min(Math.max(spotlight.left, 16), window.innerWidth - 320);
 
   return (
     <div className="onboarding-root" role="dialog" aria-modal="true" aria-label="Platform turu">
@@ -106,7 +137,7 @@ export function FranchiseOwnerTour() {
           height: spotlight.height,
         }}
       />
-      <div className="onboarding-card" style={{ top: cardTop, left: cardLeft }}>
+      <div key={step} className="onboarding-card onboarding-card-docked">
         <p className="onboarding-step">
           {step + 1} / {STEPS.length}
         </p>

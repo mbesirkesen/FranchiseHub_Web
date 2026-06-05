@@ -102,6 +102,7 @@ export type InventoryItem = {
   quantity?: number;
   sku?: string;
   unit?: string;
+  outlet_id?: number | null;
 };
 
 export type SupplyBulkRequest = {
@@ -258,12 +259,31 @@ export type SupplyRequest = {
   quantity?: number;
   status?: SupplyRequestStatus;
   created_at?: string;
+  updated_at?: string;
   notes?: string | null;
+  outlet_id?: number | null;
+  buyer_id?: number | null;
+  outlet_name?: string | null;
+  buyer_name?: string | null;
+};
+
+export type BuyerSupplyRequestCreate = {
+  brand_id: number;
+  outlet_id: number;
+  product_name: string;
+  quantity: number;
 };
 
 export type SupplyRequestUpdateRequest = {
   status: SupplyRequestStatus;
   notes?: string;
+};
+
+export type SupplyPoolItem = {
+  product_name: string;
+  total_quantity: number;
+  request_count: number;
+  franchise_owner_count: number;
 };
 
 export type InventoryTransferRequest = {

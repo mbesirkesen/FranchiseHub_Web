@@ -3,29 +3,33 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { InventoryPanel } from "@/app/franchise-owner/_components/inventory-panel";
-import { SupplyPanel } from "@/app/franchise-owner/_components/supply-panel";
+import { SupplyCenterPanel } from "@/app/franchise-owner/_components/supply-center-panel";
 import { FriendlyHeader, HelpBox, PanelTabs } from "@/components/ui/simple-blocks";
 
 const TABS = [
-  { id: "depo", label: "Depom", icon: "📦" },
-  { id: "siparis", label: "Sipariş ver", icon: "🚚" },
+  { id: "talepler", label: "Bayi talepleri", icon: "📋" },
+  { id: "depo", label: "Merkez deposu", icon: "📦" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
+
+function tabFromParam(value: string | null): TabId {
+  return value === "depo" ? "depo" : "talepler";
+}
 
 export default function FranchiseStockPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tabParam = searchParams.get("tab");
-  const initialTab: TabId = tabParam === "siparis" ? "siparis" : "depo";
+  const initialTab = tabFromParam(tabParam);
   const [tab, setTab] = useState<TabId>(initialTab);
 
   useEffect(() => {
-    setTab(tabParam === "siparis" ? "siparis" : "depo");
+    setTab(tabFromParam(tabParam));
   }, [tabParam]);
 
   const changeTab = (id: string) => {
-    const next = id === "siparis" ? "siparis" : "depo";
+    const next = tabFromParam(id);
     setTab(next);
     router.replace(`/franchise-owner/stock?tab=${next}`, { scroll: false });
   };
@@ -33,19 +37,20 @@ export default function FranchiseStockPage() {
   return (
     <div>
       <FriendlyHeader
-        title="Depo & sipariş"
-        subtitle="Elinizde ne var, ne lazım — hepsi burada."
+        title="Tedarik yönetimi"
+        subtitle="Bayi malzeme talepleri ve merkez deposu."
       />
 
       <HelpBox>
-        <strong>Depom:</strong> stoktaki ürünler. <strong>Sipariş ver:</strong> merkeze malzeme talebi gönderin.
+        <strong>Bayi talepleri:</strong> onaylı bayilerden gelen istekleri yönetin.{" "}
+        <strong>Merkez deposu:</strong> marka merkezinin stok envanterini güncelleyin.
       </HelpBox>
 
       <div className="mt-4">
         <PanelTabs tabs={[...TABS]} active={tab} onChange={changeTab} />
       </div>
 
-      {tab === "depo" ? <InventoryPanel /> : <SupplyPanel />}
+      {tab === "talepler" ? <SupplyCenterPanel /> : <InventoryPanel />}
     </div>
   );
 }

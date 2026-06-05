@@ -11,18 +11,18 @@ type Props = {
   children: ReactNode;
 };
 
-function clientMayRender(role: UserRole): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
-  const token = getAccessToken();
-  const currentRole = getUserRole();
-  return Boolean(token && currentRole === role);
+function GuardLoading() {
+  return (
+    <div className="page-shell flex min-h-screen items-center justify-center">
+      <p className="text-sm text-[var(--muted-foreground)]">Yükleniyor…</p>
+    </div>
+  );
 }
 
 export function RoleGuard({ role, children }: Props) {
   const router = useRouter();
-  const [allowed, setAllowed] = useState(() => clientMayRender(role));
+  const [allowed, setAllowed] = useState(false);
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     const token = getAccessToken();
@@ -30,21 +30,24 @@ export function RoleGuard({ role, children }: Props) {
 
     if (!token) {
       setAllowed(false);
+      setChecked(true);
       router.replace("/login");
       return;
     }
 
     if (currentRole !== role) {
       setAllowed(false);
+      setChecked(true);
       router.replace(currentRole ? getRoleRoute(currentRole) : "/login");
       return;
     }
 
     setAllowed(true);
+    setChecked(true);
   }, [role, router]);
 
-  if (!allowed) {
-    return null;
+  if (!checked || !allowed) {
+    return <GuardLoading />;
   }
 
   return <>{children}</>;

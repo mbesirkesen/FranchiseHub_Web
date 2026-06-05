@@ -9,10 +9,11 @@ import { getBuyerApplicationById, getConversations, getMyBrandApplications } fro
 type Props = {
   viewer: "buyer" | "franchise_owner";
   inboxPath: string;
-  applicationDetailPath: (id: number) => string;
+  /** Örn. /buyer/applications — id client tarafında eklenir */
+  applicationDetailBasePath: string;
 };
 
-export function MessageThreadPage({ viewer, inboxPath, applicationDetailPath }: Props) {
+export function MessageThreadPage({ viewer, inboxPath, applicationDetailBasePath }: Props) {
   const params = useParams();
   const idParam = params.applicationId;
   const applicationId = Number(Array.isArray(idParam) ? idParam[0] : idParam);
@@ -65,7 +66,7 @@ export function MessageThreadPage({ viewer, inboxPath, applicationDetailPath }: 
             {viewer === "franchise_owner" && conv?.brand_name ? ` · ${conv.brand_name}` : ""}
           </p>
         </div>
-        <Link href={applicationDetailPath(applicationId)} className="btn btn-secondary btn-sm">
+        <Link href={`${applicationDetailBasePath}/${applicationId}`} className="btn btn-secondary btn-sm">
           Başvuru detayı
         </Link>
       </div>

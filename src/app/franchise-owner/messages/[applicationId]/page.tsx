@@ -5,7 +5,7 @@ export default function FranchiseOwnerMessageThreadPage() {
     <MessageThreadPage
       viewer="franchise_owner"
       inboxPath="/franchise-owner/messages"
-      applicationDetailPath={(id) => `/franchise-owner/applications/${id}`}
+      applicationDetailBasePath="/franchise-owner/applications"
     />
   );
 }

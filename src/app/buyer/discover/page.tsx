@@ -22,14 +22,7 @@ import {
   getBrands,
   removeBuyerFavorite,
 } from "@/lib/api";
-import { Brand } from "@/lib/types";
-
-function brandMatchesBudget(brand: Brand, budget: number): boolean {
-  const min = brand.min_investment_cost ?? 0;
-  const max = brand.max_investment_cost ?? (min * 2 || budget);
-  if (min === 0 && max === 0) return true;
-  return budget >= min && budget <= max * 1.2;
-}
+import { brandMatchesBudget } from "@/lib/brand-budget";
 
 export default function BuyerDiscoverPage() {
   const queryClient = useQueryClient();
@@ -151,7 +144,7 @@ export default function BuyerDiscoverPage() {
     <div>
       <FriendlyHeader
         title="Fırsat keşfi"
-        subtitle="Bütçenize uygun markaları keşfedin — kartın üzerine gelince ROI görünür."
+        subtitle="Maksimum yatırım bütçenize göre karşılayabileceğiniz markalar listelenir."
       />
 
       <BudgetSlider budget={budget} matchCount={matchedBrands.length} onChange={setBudget} />
@@ -232,7 +225,9 @@ export default function BuyerDiscoverPage() {
       {!brandsQuery.isLoading && matchedBrands.length === 0 ? (
         <div className="mt-8">
           <HelpBox>
-            Bu bütçe ve filtrelerle eşleşen marka yok. Bütçeyi artırın veya filtreleri gevşetin.
+            {allBrands.length > 0
+              ? "Bütçeniz listedeki markaların minimum yatırım tutarının altında görünüyor. Kaydırıcıyı artırın veya sektör/şehir filtrelerini gevşetin."
+              : "Bu filtrelerle marka bulunamadı. Arama veya filtreleri gevşetin."}
           </HelpBox>
         </div>
       ) : null}

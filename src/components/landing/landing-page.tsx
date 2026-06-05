@@ -6,7 +6,7 @@ import { useRef } from "react";
 import { NetworkGlobe } from "@/components/motion/network-globe";
 import { Reveal, StaggerItem, StaggerReveal } from "@/components/motion/reveal";
 import { CountUp } from "@/components/motion/count-up";
-import { SectorIcon, SectorId } from "@/components/landing/sector-icon";
+import { SectorMarquee } from "@/components/landing/sector-marquee";
 import { MarketingHeader } from "@/components/ui/marketing-header";
 
 const stats = [
@@ -28,15 +28,6 @@ const stories = [
     quote: "Depo ve sipariş aynı yerde — ekstra program öğrenmedik.",
     role: "Marka sahibi · Perakende",
   },
-];
-
-const sectors: { label: string; icon: SectorId }[] = [
-  { label: "Kahve", icon: "coffee" },
-  { label: "Gıda", icon: "food" },
-  { label: "Güzellik", icon: "beauty" },
-  { label: "Spor", icon: "sport" },
-  { label: "Perakende", icon: "retail" },
-  { label: "Otomotiv", icon: "automotive" },
 ];
 
 export function LandingPage() {
@@ -105,16 +96,7 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section className="landing-marquee-wrap border-y border-[var(--border)] bg-[var(--card)]">
-          <div className="landing-marquee">
-            {[...sectors, ...sectors].map((s, i) => (
-              <span key={`${s.label}-${i}`} className="landing-marquee-item">
-                <SectorIcon id={s.icon} className="landing-marquee-icon" />
-                {s.label}
-              </span>
-            ))}
-          </div>
-        </section>
+        <SectorMarquee />
 
         <section className="page-container py-20 md:py-28">
           <Reveal className="mx-auto max-w-2xl text-center">

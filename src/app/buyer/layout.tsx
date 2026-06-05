@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { FranchiseAgent } from "@/components/agent/franchise-agent";
 import { PanelShell } from "@/components/panel-shell";
 import { RoleGuard } from "@/components/role-guard";
@@ -22,7 +22,8 @@ function smartSubtitle(apps: Application[], summary: BuyerDashboardSummary | und
   if (pending > 1) return `Bugün ilgilenmen gereken ${pending} başvurunuz var.`;
 
   const approved = apps.filter((a) => a.status === "approved").length;
-  if (approved > 0) return "Bayi süreciniz aktif — panelinizi kontrol edin.";
+  if (approved === 1) return "1 onaylı bayiliğiniz aktif — mesajlarınızı kontrol edin.";
+  if (approved > 1) return `${approved} onaylı bayiliğiniz aktif — her marka için ayrı süreç.`;
 
   const fav = summary?.favorites_count ?? 0;
   if (fav > 0) return `${fav} favori markanız kayıtlı — keşfe devam edin.`;
@@ -33,6 +34,7 @@ function smartSubtitle(apps: Application[], summary: BuyerDashboardSummary | und
 }
 
 function BuyerPanelShell({ children }: { children: ReactNode }) {
+  const [mounted, setMounted] = useState(false);
   const meQuery = useQuery({ queryKey: ["me"], queryFn: () => getMe() });
   const summaryQuery = useQuery({
     queryKey: ["buyer-dashboard-summary"],
@@ -44,13 +46,18 @@ function BuyerPanelShell({ children }: { children: ReactNode }) {
     retry: false,
   });
 
-  const title = meQuery.isSuccess
-    ? `Hoş geldin, ${displayName(meQuery.data)}`
-    : meQuery.isLoading
-      ? "Hoş geldin…"
-      : "Hoş geldin";
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const subtitle = smartSubtitle(appsQuery.data ?? [], summaryQuery.data);
+  const title =
+    mounted && meQuery.isSuccess
+      ? `Hoş geldin, ${displayName(meQuery.data)}`
+      : "Hoş geldin…";
+
+  const subtitle = mounted
+    ? smartSubtitle(appsQuery.data ?? [], summaryQuery.data)
+    : "Paneliniz hazırlanıyor…";
 
   return (
     <PanelShell title={title} subtitle={subtitle} sideNav={BUYER_NAV}>

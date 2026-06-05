@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function FranchiseSupplyRedirect() {
-  redirect("/franchise-owner/stock?tab=siparis");
+  redirect("/franchise-owner/stock?tab=talepler");
 }
