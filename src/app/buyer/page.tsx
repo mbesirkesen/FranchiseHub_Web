@@ -11,14 +11,9 @@ import { MagneticButton } from "@/components/interaction/magnetic-button";
 import { SkeletonBento } from "@/components/interaction/skeleton";
 import { EmptyState, HelpBox, StatusPill } from "@/components/ui/simple-blocks";
 import { getBuyerApplications, getBuyerDashboardSummary, getConversations } from "@/lib/api";
+import { getApplicationBrandName } from "@/lib/application-display";
 import { APPLICATION_STATUS_HINT } from "@/lib/routes";
 import { Application, ConversationItem } from "@/lib/types";
-
-function appBrandLabel(app: Application, conv?: ConversationItem): string {
-  if (conv?.brand_name) return conv.brand_name;
-  if (app.brand_id != null) return `Marka #${app.brand_id}`;
-  return `Başvuru #${app.id}`;
-}
 
 function heroTitle(approvedCount: number, hasPending: boolean): string {
   if (approvedCount > 1) return `${approvedCount} aktif bayilik`;
@@ -105,7 +100,7 @@ export default function BuyerHomePage() {
         ) : pendingCount > 0 ? (
           <BentoCell className="flex flex-col justify-center gap-3 bento-cell-accent">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Başvuru #{pendingApp!.id}
+              {getApplicationBrandName(pendingApp!, conversationByAppId.get(pendingApp!.id))}
             </p>
             <div className="status-live-wrap">
               <StatusPill status="pending" live />
@@ -134,7 +129,7 @@ export default function BuyerHomePage() {
             <ul className="mt-3 space-y-2">
               {approvedApps.map((app) => {
                 const conv = conversationByAppId.get(app.id);
-                const label = appBrandLabel(app, conv);
+                const label = getApplicationBrandName(app, conv);
                 const unread = conv?.unread_count ?? 0;
 
                 return (
@@ -145,8 +140,7 @@ export default function BuyerHomePage() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-[var(--foreground)]">{label}</p>
                       <p className="mt-0.5 text-xs text-[var(--muted)]">
-                        Başvuru #{app.id}
-                        {unread > 0 ? ` · ${unread} okunmamış mesaj` : ""}
+                        {unread > 0 ? `${unread} okunmamış mesaj` : "Onaylı bayilik"}
                       </p>
                     </div>
                     <Link
@@ -165,7 +159,7 @@ export default function BuyerHomePage() {
         {approvedCount === 1 && pendingCount === 0 ? (
           <BentoCell className="flex flex-col justify-center gap-3 bento-cell-accent">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              {appBrandLabel(focusApp!, conversationByAppId.get(focusApp!.id))}
+              {getApplicationBrandName(focusApp!, conversationByAppId.get(focusApp!.id))}
             </p>
             <StatusPill status="approved" />
             <MagneticButton strength={0.18}>
@@ -193,7 +187,7 @@ export default function BuyerHomePage() {
                     className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] px-3 py-2.5"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{appBrandLabel(app, conv)}</p>
+                      <p className="truncate text-sm font-medium">{getApplicationBrandName(app, conv)}</p>
                       <div className="mt-1">
                         <StatusPill status="pending" live />
                       </div>

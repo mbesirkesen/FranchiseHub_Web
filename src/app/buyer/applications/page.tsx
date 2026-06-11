@@ -5,6 +5,7 @@ import Link from "next/link";
 import { EmptyState, FriendlyHeader, StatusPill } from "@/components/ui/simple-blocks";
 import { getBuyerApplications, getConversations } from "@/lib/api";
 import { APPLICATION_STATUS_HINT } from "@/lib/routes";
+import { applicationListTitle, formatApplicationDate, getApplicationBrandName } from "@/lib/application-display";
 
 export default function BuyerApplicationsPage() {
   const appsQuery = useQuery({
@@ -43,10 +44,7 @@ export default function BuyerApplicationsPage() {
             <li key={app.id} className="card p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="font-medium">
-                    Başvuru #{app.id}
-                    {conv?.brand_name ? ` · ${conv.brand_name}` : app.brand_id != null ? ` · Marka #${app.brand_id}` : ""}
-                  </p>
+                  <p className="font-medium">{applicationListTitle(app, conv)}</p>
                   <div className="mt-2">
                     <StatusPill status={app.status} live={app.status === "pending"} />
                   </div>
@@ -59,7 +57,7 @@ export default function BuyerApplicationsPage() {
                     </p>
                   ) : null}
                   {app.created_at ? (
-                    <p className="mt-1 text-xs text-[var(--muted)]">{app.created_at}</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">{formatApplicationDate(app.created_at)}</p>
                   ) : null}
                 </div>
                 <Link

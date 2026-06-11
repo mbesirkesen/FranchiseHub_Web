@@ -73,8 +73,7 @@ export function ConversationsInbox({ viewer, threadBasePath }: Props) {
                         : "Henüz mesaj yok — sohbeti başlatın"}
                     </span>
                     <span className="conversation-row-meta">
-                      Başvuru #{conv.application_id}
-                      {viewer === "franchise_owner" ? ` · ${conv.brand_name}` : ""}
+                      {viewer === "franchise_owner" ? conv.brand_name : conv.application_status === "approved" ? "Onaylı bayilik" : ""}
                     </span>
                   </span>
                   {unread > 0 ? <span className="conversation-row-badge">{unread}</span> : null}

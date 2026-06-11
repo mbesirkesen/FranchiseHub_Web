@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ApplicationMessagesPanel } from "@/components/messages/application-messages-panel";
 import { getBuyerApplicationById, getConversations, getMyBrandApplications } from "@/lib/api";
+import { getApplicationBrandName, getApplicationBuyerName } from "@/lib/application-display";
 
 type Props = {
   viewer: "buyer" | "franchise_owner";
@@ -47,10 +48,16 @@ export function MessageThreadPage({ viewer, inboxPath, applicationDetailBasePath
       ? buyerAppQuery.data?.status ?? conv?.application_status
       : (foAppsQuery.data ?? []).find((a) => a.id === applicationId)?.status ?? conv?.application_status;
 
+  const buyerApp = buyerAppQuery.data;
+  const foApp = (foAppsQuery.data ?? []).find((a) => a.id === applicationId);
+
   const threadTitle =
     viewer === "buyer"
-      ? conv?.brand_name ?? `Marka #${conv?.brand_id ?? "—"}`
-      : conv?.buyer_name ?? "Aday";
+      ? getApplicationBrandName(
+          buyerApp ?? { id: applicationId, brand_id: conv?.brand_id },
+          conv,
+        )
+      : getApplicationBuyerName(foApp ?? {}, conv) ?? "Aday";
 
   return (
     <div>
@@ -62,8 +69,7 @@ export function MessageThreadPage({ viewer, inboxPath, applicationDetailBasePath
         <div>
           <h2 className="page-title">{threadTitle}</h2>
           <p className="page-desc">
-            Başvuru #{applicationId}
-            {viewer === "franchise_owner" && conv?.brand_name ? ` · ${conv.brand_name}` : ""}
+            {viewer === "franchise_owner" && conv?.brand_name ? conv.brand_name : "Onaylı başvuru"}
           </p>
         </div>
         <Link href={`${applicationDetailBasePath}/${applicationId}`} className="btn btn-secondary btn-sm">

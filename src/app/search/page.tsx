@@ -52,7 +52,7 @@ function SearchContent() {
             {results.applications.map((a) => (
               <ResultRow
                 key={a.id}
-                primary={`Başvuru #${a.id}`}
+                primary={a.brand_name ?? `Başvuru #${a.id}`}
                 secondary={APPLICATION_STATUS_LABEL[a.status] ?? a.status}
               />
             ))}

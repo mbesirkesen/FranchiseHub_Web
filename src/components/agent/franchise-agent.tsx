@@ -62,7 +62,7 @@ function AgentMessage({
 
   return (
     <motion.div
-      className={isUser ? "agent-bubble agent-bubble-user" : "agent-bubble agent-bubble-ai"}
+      className={isUser ? "agent-bubble agent-bubble-user" : `agent-bubble agent-bubble-ai${msg.compareRows?.length ? " agent-bubble-wide" : ""}`}
       variants={messageVariants}
       initial="hidden"
       animate="visible"
@@ -84,7 +84,7 @@ function AgentMessage({
         </div>
       ) : null}
       {msg.role === "assistant" && msg.compareRows && msg.compareRows.length > 0 ? (
-        <CompareTable rows={msg.compareRows} />
+        <CompareTable rows={msg.compareRows} variant="agent" />
       ) : null}
       {msg.role === "assistant" && msg.suggestions && msg.suggestions.length > 0 ? (
         <AgentSuggestionChips
@@ -107,6 +107,7 @@ function FranchiseAgentInner({ role }: { role: AgentChatRole }) {
     role === "buyer" && Number.isFinite(brandFromUrl) && brandFromUrl > 0 ? brandFromUrl : undefined;
 
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [sessionId, setSessionId] = useState<number | null>(null);
@@ -172,6 +173,12 @@ function FranchiseAgentInner({ role }: { role: AgentChatRole }) {
     const stored = readStoredAgentSessionId(role);
     if (stored) void restoreSession(stored);
   }, [open, restoreSession, role]);
+
+  useEffect(() => {
+    if (!open) {
+      setExpanded(false);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -360,7 +367,7 @@ function FranchiseAgentInner({ role }: { role: AgentChatRole }) {
               aria-label="Asistanı kapat"
             />
             <motion.div
-              className={`agent-panel agent-panel-dark${isMobileSheet ? " agent-panel-sheet" : ""}`}
+              className={`agent-panel agent-panel-dark${isMobileSheet ? " agent-panel-sheet" : ""}${expanded ? " agent-panel-expanded" : ""}`}
               initial={isMobileSheet ? { y: "100%" } : { opacity: 0, y: 32, scale: 0.92 }}
               animate={isMobileSheet ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
               exit={isMobileSheet ? { y: "100%" } : { opacity: 0, y: 20, scale: 0.94 }}
@@ -377,6 +384,15 @@ function FranchiseAgentInner({ role }: { role: AgentChatRole }) {
                   <h2 className="agent-panel-title">{ui.panelTitle}</h2>
                 </div>
                 <div className="agent-panel-header-actions">
+                  <button
+                    type="button"
+                    className="agent-panel-new-chat"
+                    onClick={() => setExpanded((v) => !v)}
+                    aria-label={expanded ? "Asistanı küçült" : "Asistanı büyüt"}
+                    aria-pressed={expanded}
+                  >
+                    {expanded ? "Küçült" : "Büyüt"}
+                  </button>
                   <button
                     type="button"
                     className="agent-panel-new-chat"

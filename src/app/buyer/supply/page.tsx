@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import { useMemo, useState } from "react";
 import {
   createBuyerSupplyRequest,
@@ -11,7 +12,16 @@ import {
   getConversations,
 } from "@/lib/api";
 import { SUPPLY_STATUS_LABEL } from "@/lib/routes";
+import { getApplicationBrandName } from "@/lib/application-display";
 import { FriendlyHeader, HelpBox } from "@/components/ui/simple-blocks";
+
+function readApiError(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+    if (typeof detail === "string") return detail;
+  }
+  return fallback;
+}
 
 export default function BuyerSupplyPage() {
   const queryClient = useQueryClient();
@@ -34,7 +44,7 @@ export default function BuyerSupplyPage() {
         continue;
       }
       const conv = convs.find((c) => c.application_id === app.id);
-      const label = conv?.brand_name ?? `Marka #${app.brand_id}`;
+      const label = getApplicationBrandName(app, conv);
       map.set(app.brand_id, label);
     }
     return [...map.entries()].map(([id, name]) => ({ id, name }));
@@ -66,7 +76,8 @@ export default function BuyerSupplyPage() {
       setFeedback("Talebiniz marka merkezine iletildi.");
       queryClient.invalidateQueries({ queryKey: ["buyer-supply-requests"] });
     },
-    onError: () => setFeedback("Talep gönderilemedi — marka, şube ve merkez stok listesinden ürün seçin."),
+    onError: (error) =>
+      setFeedback(readApiError(error, "Talep gönderilemedi — marka, şube ve merkez stok listesinden ürün seçin.")),
   });
 
   const outlets = outletsQuery.data ?? [];
@@ -74,10 +85,20 @@ export default function BuyerSupplyPage() {
   const requests = requestsQuery.data ?? [];
 
   const selectedProduct = centerProducts.find((p) => p.product_name === productName);
+  const maxQuantity = selectedProduct?.quantity ?? null;
+  const parsedQuantity = Number(quantity);
+  const quantityTooHigh =
+    maxQuantity != null && Number.isFinite(parsedQuantity) && parsedQuantity > maxQuantity;
+  const quantityInvalid =
+    !quantity || !Number.isFinite(parsedQuantity) || parsedQuantity < 1 || quantityTooHigh;
 
   const submit = () => {
     if (!brandId || !outletId || !productName.trim() || !quantity) {
       setFeedback("Marka, şube, ürün ve adet zorunlu.");
+      return;
+    }
+    if (quantityTooHigh && maxQuantity != null) {
+      setFeedback(`Merkezde en fazla ${maxQuantity} adet talep edilebilir.`);
       return;
     }
     createMutation.mutate();
@@ -168,19 +189,22 @@ export default function BuyerSupplyPage() {
             <input
               type="number"
               min={1}
-              max={selectedProduct?.quantity ?? undefined}
+              max={maxQuantity ?? undefined}
+              step={1}
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              className="mt-1 block w-full input"
+              className={`mt-1 block w-full input${quantityTooHigh ? " border-red-400" : ""}`}
             />
-            {selectedProduct?.quantity != null ? (
-              <p className="mt-1 text-xs text-[var(--muted)]">Merkezde en fazla {selectedProduct.quantity} adet talep edilebilir.</p>
+            {maxQuantity != null ? (
+              <p className={`mt-1 text-xs${quantityTooHigh ? " font-medium text-red-600" : " text-[var(--muted)]"}`}>
+                Merkezde en fazla {maxQuantity} adet talep edilebilir.
+              </p>
             ) : null}
           </div>
         </div>
         <button
           type="button"
-          disabled={createMutation.isPending || !productName || centerProducts.length === 0}
+          disabled={createMutation.isPending || !productName || centerProducts.length === 0 || quantityInvalid}
           onClick={submit}
           className="btn btn-primary btn-sm mt-4 disabled:opacity-50"
         >

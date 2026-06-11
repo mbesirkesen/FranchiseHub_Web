@@ -69,6 +69,15 @@ export type ApplicationUpdateRequest = {
   notes?: string;
 };
 
+/** GET /buyer/applications — nested brand summary from API. */
+export type ApplicationBrandSummary = {
+  id: number;
+  name: string;
+  sector?: string | null;
+  location?: string | null;
+  initial_cost?: number | null;
+};
+
 /** GET /applications/my-brand — backend alanları esnek tutuldu. */
 export type Application = {
   id: number;
@@ -77,6 +86,9 @@ export type Application = {
   brand_id?: number;
   buyer_id?: number;
   created_at?: string;
+  brand?: ApplicationBrandSummary | null;
+  brand_name?: string | null;
+  buyer_name?: string | null;
 };
 
 export type MessageCreateRequest = {
@@ -211,10 +223,19 @@ export type BrandMedia = {
 
 export type BrandFdd = {
   id: number;
+  brand_id?: number;
   title?: string;
+  version?: string;
   year?: number;
+  published_at?: string;
   file_url?: string;
   created_at?: string;
+};
+
+export type BrandFddDownload = {
+  download_url: string;
+  expires_at?: string;
+  expires_in_seconds?: number;
 };
 
 export type Territory = {
@@ -293,9 +314,18 @@ export type InventoryTransferRequest = {
   quantity: number;
 };
 
+export type SearchApplicationHit = {
+  id: number;
+  status: ApplicationStatus;
+  brand_name?: string | null;
+  buyer_name?: string | null;
+  buyer_email?: string | null;
+  notes?: string | null;
+};
+
 export type SearchResults = {
   brands: Brand[];
-  applications: Application[];
+  applications: SearchApplicationHit[];
 };
 
 export type FranchiseAnalytics = {

@@ -16,6 +16,7 @@ import {
   BrandCompareRequest,
   BrandCreateRequest,
   BrandFdd,
+  BrandFddDownload,
   BrandMedia,
   BrandUpdateRequest,
   BuyerDashboardSummary,
@@ -178,6 +179,23 @@ export async function getBrandMedia(brandId: number) {
 export async function getBrandFdds(brandId: number) {
   const response = await api.get<unknown>(`/brands/${brandId}/fdd`);
   return normalizeList<BrandFdd>(response.data);
+}
+
+function proxiedBackendFileUrl(backendUrl: string): string {
+  try {
+    const parsed = new URL(backendUrl);
+    if (parsed.pathname.startsWith("/files/")) {
+      return `/api/proxy${parsed.pathname}${parsed.search}`;
+    }
+  } catch {
+    /* use raw url */
+  }
+  return backendUrl;
+}
+
+export async function getBrandFddDownloadUrl(brandId: number, fddId: number) {
+  const response = await api.get<BrandFddDownload>(`/brands/${brandId}/fdd/${fddId}/download`);
+  return proxiedBackendFileUrl(response.data.download_url);
 }
 
 export async function getBrandTerritories(brandId: number) {

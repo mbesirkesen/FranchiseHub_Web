@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { ApplicationTimeline } from "@/components/buyer/application-timeline";
 import { StatusPill } from "@/components/ui/simple-blocks";
 import { getBuyerApplicationById } from "@/lib/api";
+import { formatApplicationDate, getApplicationBrandName } from "@/lib/application-display";
 import { APPLICATION_STATUS_LABEL } from "@/lib/routes";
 
 export default function BuyerApplicationDetailPage() {
@@ -31,16 +32,21 @@ export default function BuyerApplicationDetailPage() {
       <Link href="/buyer/applications" className="text-sm text-[var(--primary-hover)] hover:underline">
         ← Başvurularım
       </Link>
-      <h2 className="mt-4 page-title">Başvuru #{applicationId}</h2>
+      <h2 className="mt-4 page-title">
+        {app ? getApplicationBrandName(app) : `Başvuru #${applicationId}`}
+      </h2>
       {app ? (
         <>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <StatusPill status={app.status} live={app.status === "pending"} />
-            {app.brand_id != null ? (
-              <span className="text-sm text-[var(--muted-foreground)]">Marka #{app.brand_id}</span>
-            ) : null}
+            <span className="text-sm text-[var(--muted-foreground)]">
+              {app.brand?.sector ?? app.brand?.location ?? "Franchise başvurusu"}
+            </span>
           </div>
-          <p className="mt-1 page-desc">{APPLICATION_STATUS_LABEL[app.status] ?? app.status}</p>
+          <p className="mt-1 page-desc">
+            {APPLICATION_STATUS_LABEL[app.status] ?? app.status}
+            {app.created_at ? ` · ${formatApplicationDate(app.created_at)}` : ""}
+          </p>
         </>
       ) : appQuery.isError ? (
         <p className="mt-2 text-[var(--danger)]">Başvuru detayı yüklenemedi.</p>

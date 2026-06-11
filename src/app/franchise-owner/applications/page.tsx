@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ExportMenu } from "@/components/ui/export-menu";
 import { getConversations, getMyBrandApplications, updateApplicationStatus } from "@/lib/api";
+import { formatApplicationDate, getApplicationBuyerName } from "@/lib/application-display";
 import { downloadCsv, printTableAsPdf } from "@/lib/export-utils";
 import { Application, ApplicationStatus } from "@/lib/types";
 
@@ -79,11 +80,12 @@ export default function FranchiseApplicationsPage() {
     const headers = ["Başvuru No", "Durum", "Marka ID", "Aday", "Not", "Tarih"];
     const rows = filteredApps.map((app) => {
       const conv = conversationByAppId.get(app.id);
+      const buyerName = getApplicationBuyerName(app, conv);
       return [
         String(app.id),
         statusLabel[app.status] ?? app.status,
-        app.brand_id != null ? String(app.brand_id) : "",
-        conv?.buyer_name ?? "",
+        app.brand_name ?? (app.brand_id != null ? String(app.brand_id) : ""),
+        buyerName ?? "",
         app.notes ?? "",
         app.created_at ?? "",
       ];
@@ -155,6 +157,7 @@ export default function FranchiseApplicationsPage() {
       <ul className="mt-6 space-y-4">
         {filteredApps.map((app) => {
           const conv = conversationByAppId.get(app.id);
+          const buyerName = getApplicationBuyerName(app, conv);
           const canMessage = app.status === "approved";
 
           return (
@@ -165,16 +168,15 @@ export default function FranchiseApplicationsPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-[var(--foreground)]">
-                  Başvuru #{app.id}
-                  {conv?.buyer_name ? ` · ${conv.buyer_name}` : ""}
+                  {buyerName ?? "Aday"} · Başvuru #{app.id}
                 </p>
                 <p className="mt-1 text-xs text-[var(--muted)]">
                   Durum:{" "}
                   <span className="font-medium text-[var(--primary-hover)]">
                     {statusLabel[app.status] ?? app.status}
                   </span>
-                  {app.brand_id != null ? ` · Marka #${app.brand_id}` : null}
-                  {app.created_at ? ` · ${app.created_at}` : null}
+                  {app.brand_name ? ` · ${app.brand_name}` : null}
+                  {app.created_at ? ` · ${formatApplicationDate(app.created_at)}` : null}
                 </p>
                 {conv?.last_message ? (
                   <p className="mt-2 line-clamp-2 text-xs text-[var(--muted-foreground)]">

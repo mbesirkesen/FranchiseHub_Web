@@ -12,6 +12,7 @@ import { MagneticButton } from "@/components/interaction/magnetic-button";
 import { SkeletonBento } from "@/components/interaction/skeleton";
 import { EmptyState, HelpBox, StatusPill } from "@/components/ui/simple-blocks";
 import { getFranchiseDashboardSummary, getMyBrandApplications } from "@/lib/api";
+import { getApplicationBuyerName } from "@/lib/application-display";
 import { Application } from "@/lib/types";
 
 function parseAppDate(a: Application): number {
@@ -130,7 +131,9 @@ export default function FranchiseOwnerHomePage() {
                   key={a.id}
                   className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] pb-2 last:border-0"
                 >
-                  <span className="text-sm text-[var(--muted-foreground)]">Başvuru #{a.id}</span>
+                  <span className="text-sm text-[var(--muted-foreground)]">
+                    {getApplicationBuyerName(a) ?? `Başvuru #${a.id}`}
+                  </span>
                   <div className="flex items-center gap-2">
                     <StatusPill status={a.status} />
                     <Link
