@@ -48,6 +48,10 @@ import {
   SupplyRequestUpdateRequest,
   Territory,
   UserProfile,
+  RegionOption,
+  PlatformStats,
+  FranchiseGeography,
+  FranchiseEcosystem,
 } from "@/lib/types";
 
 const baseURL = "/api/proxy";
@@ -129,11 +133,32 @@ export type GetBrandsParams = {
   min_cost?: number;
   max_cost?: number;
   location?: string;
+  region?: string;
   q?: string;
   page?: number;
   page_size?: number;
   sort?: string;
 };
+
+export async function getRegions() {
+  const response = await api.get<{ items: RegionOption[] }>("/regions");
+  return response.data.items ?? [];
+}
+
+export async function getBrandSectors() {
+  const response = await api.get<{ items: string[] }>("/brands/sectors");
+  return response.data.items ?? [];
+}
+
+export async function getReferenceCities() {
+  const response = await api.get<{ items: string[] }>("/reference/cities");
+  return response.data.items ?? [];
+}
+
+export async function getPlatformStats(): Promise<PlatformStats> {
+  const response = await api.get<PlatformStats>("/platform/stats");
+  return response.data;
+}
 
 export async function getBrands(params?: GetBrandsParams) {
   const response = await api.get<unknown>("/brands", { params });
@@ -346,6 +371,18 @@ export async function getFranchiseAnalytics(): Promise<FranchiseAnalytics> {
   };
 }
 
+export async function getFranchiseGeography(days = 30): Promise<FranchiseGeography> {
+  const response = await api.get<FranchiseGeography>("/franchise-owner/analytics/geography", {
+    params: { days },
+  });
+  return response.data;
+}
+
+export async function getFranchiseEcosystem(): Promise<FranchiseEcosystem> {
+  const response = await api.get<FranchiseEcosystem>("/franchise-owner/ecosystem");
+  return response.data;
+}
+
 export async function getInventory(options?: { scope?: "center" | "outlet" | "all" }) {
   const params =
     options?.scope && options.scope !== "all" ? { scope: options.scope } : undefined;
@@ -445,8 +482,18 @@ export async function postAgentChat(payload: AssistantChatRequest) {
   return normalizeAssistantResponse(response.data);
 }
 
+export async function postFoAgentChat(payload: AssistantChatRequest) {
+  const response = await api.post<AssistantQueryResponse>("/agent/fo/chat", payload);
+  return normalizeAssistantResponse(response.data);
+}
+
 export async function postAgentQuery(payload: Omit<AssistantChatRequest, "new_session">) {
   const response = await api.post<AssistantQueryResponse>("/agent/query", payload);
+  return normalizeAssistantResponse(response.data);
+}
+
+export async function postFoAgentQuery(payload: Omit<AssistantChatRequest, "new_session">) {
+  const response = await api.post<AssistantQueryResponse>("/agent/fo/query", payload);
   return normalizeAssistantResponse(response.data);
 }
 
@@ -462,4 +509,18 @@ export async function getAgentSession(sessionId: number) {
 
 export async function deleteAgentSession(sessionId: number) {
   await api.delete(`/agent/sessions/${sessionId}`);
+}
+
+export async function getFoAgentSessions() {
+  const response = await api.get<AgentSession[]>("/agent/fo/sessions");
+  return response.data;
+}
+
+export async function getFoAgentSession(sessionId: number) {
+  const response = await api.get<AgentSessionDetail>(`/agent/fo/sessions/${sessionId}`);
+  return response.data;
+}
+
+export async function deleteFoAgentSession(sessionId: number) {
+  await api.delete(`/agent/fo/sessions/${sessionId}`);
 }

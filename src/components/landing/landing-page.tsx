@@ -2,18 +2,14 @@
 
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { useRef } from "react";
 import { NetworkGlobe } from "@/components/motion/network-globe";
 import { Reveal, StaggerItem, StaggerReveal } from "@/components/motion/reveal";
 import { CountUp } from "@/components/motion/count-up";
 import { SectorMarquee } from "@/components/landing/sector-marquee";
 import { MarketingHeader } from "@/components/ui/marketing-header";
-
-const stats = [
-  { value: 2, suffix: " rol", label: "Marka sahibi & franchise arayan" },
-  { value: 1, suffix: " platform", label: "Keşif, başvuru, operasyon" },
-  { value: 100, suffix: "%", label: "Mobil uyumlu panel" },
-];
+import { getPlatformStats } from "@/lib/api";
 
 const stories = [
   {
@@ -35,6 +31,30 @@ export function LandingPage() {
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 120]);
   const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.3]);
+
+  const statsQuery = useQuery({
+    queryKey: ["platform-stats"],
+    queryFn: getPlatformStats,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const stats = [
+    {
+      value: statsQuery.data?.approved_brands ?? 0,
+      suffix: "+ marka",
+      label: "Onaylı franchise vitrinde",
+    },
+    {
+      value: statsQuery.data?.total_applications ?? 0,
+      suffix: "+ başvuru",
+      label: "Platform üzerinden iletilen",
+    },
+    {
+      value: statsQuery.data?.sectors?.length ?? 0,
+      suffix: " sektör",
+      label: "Aktif marka kategorisi",
+    },
+  ];
 
   return (
     <div className="page-shell">

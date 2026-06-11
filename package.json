@@ -4,8 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:lan": "next dev --hostname 0.0.0.0",
+    "dev:webpack": "next dev --webpack",
+    "dev:lan:webpack": "next dev --hostname 0.0.0.0 --webpack",
     "build": "next build",
     "start": "next start",
+    "start:lan": "next start --hostname 0.0.0.0",
     "lint": "eslint"
   },
   "dependencies": {

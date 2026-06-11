@@ -13,12 +13,11 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { AuthLayout } from "@/components/ui/auth-layout";
 import { registerBuyer } from "@/lib/api";
+import { useBrandSectors, useReferenceCities } from "@/hooks/use-reference-data";
 import { passwordSchema } from "@/lib/form-schemas";
 import { getUserFacingError } from "@/lib/form-errors";
 import {
-  FRANCHISE_SECTORS,
   SECTOR_OTHER,
-  TR_CITIES,
   formatTcKimlik,
   formatTrMobilePhone,
   isValidTcKimlik,
@@ -72,6 +71,8 @@ export default function RegisterBuyerPage() {
   const router = useRouter();
   const [phoneDisplay, setPhoneDisplay] = useState("");
   const [tcDisplay, setTcDisplay] = useState("");
+  const { cities } = useReferenceCities();
+  const { sectors } = useBrandSectors();
 
   const { mutate, isPending, error, isSuccess } = useMutation({
     mutationFn: registerBuyer,
@@ -191,7 +192,7 @@ export default function RegisterBuyerPage() {
         <FormField label="Şehir" required error={errors.city?.message}>
           <select {...register("city")} className="input auth-focus-input">
             <option value="">Şehir seçin</option>
-            {TR_CITIES.map((city) => (
+            {cities.map((city) => (
               <option key={city} value={city}>
                 {city}
               </option>
@@ -202,7 +203,7 @@ export default function RegisterBuyerPage() {
         <FormField label="Tercih edilen sektör" required error={errors.sectorChoice?.message}>
           <select {...register("sectorChoice")} className="input auth-focus-input">
             <option value="">Sektör seçin</option>
-            {FRANCHISE_SECTORS.map((sector) => (
+            {sectors.map((sector) => (
               <option key={sector} value={sector}>
                 {sector}
               </option>

@@ -1,6 +1,6 @@
 "use client";
 
-import { compareColumns } from "@/lib/compare-utils";
+import { compareColumns, compareFieldLabel } from "@/lib/compare-utils";
 
 type Props = {
   rows: Array<Record<string, string | number | null>>;
@@ -19,15 +19,15 @@ export function CompareTable({ rows }: Props) {
         <thead>
           <tr>
             <th>Alan</th>
-            {rows.map((_, i) => (
-              <th key={i}>Marka {i + 1}</th>
+            {rows.map((row, i) => (
+              <th key={i}>{row.name != null && row.name !== "" ? String(row.name) : `Marka ${i + 1}`}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {columns.map((col) => (
             <tr key={col}>
-              <td className="font-medium text-[var(--muted-foreground)]">{col}</td>
+              <td className="font-medium text-[var(--muted-foreground)]">{compareFieldLabel(col)}</td>
               {rows.map((row, i) => (
                 <td key={i}>{row[col] == null || row[col] === "" ? "—" : String(row[col])}</td>
               ))}

@@ -79,7 +79,7 @@ export default function FranchiseOwnerHomePage() {
 
       {summaryQuery.isError ? <p className="alert alert-error">Özet yüklenemedi.</p> : null}
 
-      <FranchiseOwnerDashboard summary={s} applications={apps} loading={false} />
+      <FranchiseOwnerDashboard summary={s} loading={false} />
 
       {summaryQuery.isSuccess && s && !s.has_brand ? (
         <HelpBox>

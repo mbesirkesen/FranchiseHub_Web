@@ -70,7 +70,7 @@ export default function BuyerLayout({ children }: { children: ReactNode }) {
   return (
     <RoleGuard role="buyer">
       <BuyerPanelShell>{children}</BuyerPanelShell>
-      <FranchiseAgent />
+      <FranchiseAgent role="buyer" />
     </RoleGuard>
   );
 }

@@ -20,17 +20,19 @@ import {
   getBrandMedia,
   getBrandTerritories,
   getBrands,
+  getMe,
+  getRegions,
   removeBuyerFavorite,
 } from "@/lib/api";
-import { brandMatchesBudget } from "@/lib/brand-budget";
+import { useBrandSectors } from "@/hooks/use-reference-data";
 
 export default function BuyerDiscoverPage() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const brandFromUrl = Number(searchParams.get("brand"));
-  const [budget, setBudget] = useState(1_500_000);
+  const [budget, setBudget] = useState<number | null>(null);
   const [sector, setSector] = useState("");
-  const [location, setLocation] = useState("");
+  const [region, setRegion] = useState("");
   const [searchQ, setSearchQ] = useState("");
   const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
   const [applicationNotes, setApplicationNotes] = useState("");
@@ -52,25 +54,47 @@ export default function BuyerDiscoverPage() {
     }
   }, [brandFromUrl]);
 
+  const profileQuery = useQuery({
+    queryKey: ["auth-me"],
+    queryFn: getMe,
+  });
+
+  const regionsQuery = useQuery({
+    queryKey: ["regions"],
+    queryFn: getRegions,
+    staleTime: 1000 * 60 * 60,
+  });
+
+  const { sectors } = useBrandSectors();
+
+  useEffect(() => {
+    if (budget != null) return;
+    const fromProfile = profileQuery.data?.investment_budget;
+    if (typeof fromProfile === "number" && fromProfile > 0) {
+      setBudget(fromProfile);
+      return;
+    }
+    setBudget(1_500_000);
+  }, [budget, profileQuery.data?.investment_budget]);
+
   const filterParams = useMemo(
     () => ({
       sector: sector.trim() || undefined,
-      location: location.trim() || undefined,
+      region: region.trim() || undefined,
       q: searchQ.trim() || undefined,
+      max_cost: budget != null && budget > 0 ? budget : undefined,
+      page_size: 100,
     }),
-    [sector, location, searchQ],
+    [sector, region, searchQ, budget],
   );
 
   const brandsQuery = useQuery({
     queryKey: ["brands", filterParams],
     queryFn: () => getBrands(filterParams),
+    enabled: budget != null,
   });
 
-  const allBrands = brandsQuery.data ?? [];
-  const matchedBrands = useMemo(
-    () => allBrands.filter((b) => brandMatchesBudget(b, budget)),
-    [allBrands, budget],
-  );
+  const matchedBrands = brandsQuery.data ?? [];
 
   const selectedBrandQuery = useQuery({
     queryKey: ["brand-detail", selectedBrandId],
@@ -147,15 +171,32 @@ export default function BuyerDiscoverPage() {
         subtitle="Maksimum yatırım bütçenize göre karşılayabileceğiniz markalar listelenir."
       />
 
-      <BudgetSlider budget={budget} matchCount={matchedBrands.length} onChange={setBudget} />
+      <BudgetSlider
+        budget={budget ?? 1_500_000}
+        matchCount={matchedBrands.length}
+        onChange={setBudget}
+      />
 
       <div className="mt-6 grid gap-3 card-muted p-4 sm:grid-cols-3">
         <FilterInput label="Marka adı" value={searchQ} onChange={setSearchQ} placeholder="Ara…" />
-        <FilterInput label="Sektör" value={sector} onChange={setSector} placeholder="Örn: Gıda" />
-        <FilterInput label="Şehir" value={location} onChange={setLocation} />
+        <FilterSelect
+          label="Sektör"
+          value={sector}
+          onChange={setSector}
+          options={[{ value: "", label: "Tümü" }, ...sectors.map((s) => ({ value: s, label: s }))]}
+        />
+        <FilterSelect
+          label="Bölge"
+          value={region}
+          onChange={setRegion}
+          options={[
+            { value: "", label: "Tümü" },
+            ...(regionsQuery.data ?? []).map((r) => ({ value: r.key, label: r.label })),
+          ]}
+        />
       </div>
 
-      {brandsQuery.isLoading ? (
+      {budget == null || brandsQuery.isLoading ? (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-busy aria-label="Markalar yükleniyor">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="card p-4">
@@ -225,9 +266,7 @@ export default function BuyerDiscoverPage() {
       {!brandsQuery.isLoading && matchedBrands.length === 0 ? (
         <div className="mt-8">
           <HelpBox>
-            {allBrands.length > 0
-              ? "Bütçeniz listedeki markaların minimum yatırım tutarının altında görünüyor. Kaydırıcıyı artırın veya sektör/şehir filtrelerini gevşetin."
-              : "Bu filtrelerle marka bulunamadı. Arama veya filtreleri gevşetin."}
+            Bu filtrelerle marka bulunamadı. Bütçe kaydırıcısını artırın veya sektör/bölge filtrelerini gevşetin.
           </HelpBox>
         </div>
       ) : null}
@@ -285,6 +324,31 @@ function FilterInput({
         placeholder={placeholder}
         className="input"
       />
+    </div>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <div>
+      <label className="label">{label}</label>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="input">
+        {options.map((opt) => (
+          <option key={opt.value || "__all"} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

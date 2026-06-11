@@ -13,10 +13,10 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { AuthLayout } from "@/components/ui/auth-layout";
 import { registerFranchiseOwner } from "@/lib/api";
+import { useReferenceCities } from "@/hooks/use-reference-data";
 import { passwordSchema } from "@/lib/form-schemas";
 import { getUserFacingError } from "@/lib/form-errors";
 import {
-  TR_CITIES,
   TR_COUNTRIES,
   formatTaxNumber,
   formatTrMobilePhone,
@@ -51,6 +51,7 @@ export default function RegisterFranchiseOwnerPage() {
   const router = useRouter();
   const [phoneDisplay, setPhoneDisplay] = useState("");
   const [taxDisplay, setTaxDisplay] = useState("");
+  const { cities } = useReferenceCities();
 
   const { mutate, isPending, error, isSuccess } = useMutation({
     mutationFn: registerFranchiseOwner,
@@ -181,7 +182,7 @@ export default function RegisterFranchiseOwnerPage() {
           <FormField label="Şehir" required error={errors.city?.message}>
             <select {...register("city")} className="input auth-focus-input">
               <option value="">Şehir seçin</option>
-              {TR_CITIES.map((city) => (
+              {cities.map((city) => (
                 <option key={city} value={city}>
                   {city}
                 </option>

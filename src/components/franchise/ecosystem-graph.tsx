@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Application, FranchiseDashboardSummary } from "@/lib/types";
+import { FranchiseEcosystem } from "@/lib/types";
 
 type NodeType = "brand" | "application" | "outlet";
 
@@ -20,11 +20,24 @@ type GraphNode = {
 type GraphEdge = { from: string; to: string };
 
 type Props = {
-  summary: FranchiseDashboardSummary | undefined;
-  applications: Application[];
+  ecosystem?: FranchiseEcosystem;
+  brandName?: string | null;
 };
 
-export function EcosystemGraph({ summary, applications }: Props) {
+function nodeDetail(type: NodeType, meta?: Record<string, unknown>): string {
+  if (type === "application" && meta?.status) {
+    return `Durum: ${String(meta.status)}`;
+  }
+  if (type === "outlet" && meta?.city) {
+    return `${String(meta.city)} · ${String(meta.status ?? "aktif")}`;
+  }
+  if (type === "brand") {
+    return "Merkez marka";
+  }
+  return "";
+}
+
+export function EcosystemGraph({ ecosystem, brandName }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const nodesRef = useRef<GraphNode[]>([]);
   const edgesRef = useRef<GraphEdge[]>([]);
@@ -34,12 +47,44 @@ export function EcosystemGraph({ summary, applications }: Props) {
   const graphData = useMemo(() => {
     const nodes: GraphNode[] = [];
     const edges: GraphEdge[] = [];
-    const brandName = summary?.brand_name ?? "Markanız";
+
+    if (ecosystem?.nodes?.length) {
+      const apiNodes = ecosystem.nodes.slice(0, 20);
+      const idSet = new Set(apiNodes.map((n) => n.id));
+      apiNodes.forEach((n, i) => {
+        const type = (n.type === "brand" || n.type === "application" || n.type === "outlet"
+          ? n.type
+          : "application") as NodeType;
+        const angle = (i / Math.max(apiNodes.length, 1)) * Math.PI * 2;
+        const radius = type === "brand" ? 0 : 70 + (i % 3) * 25;
+        nodes.push({
+          id: n.id,
+          label: n.label.length > 14 ? `${n.label.slice(0, 12)}…` : n.label,
+          type,
+          detail: nodeDetail(type, n.meta),
+          x: type === "brand" ? 0 : Math.cos(angle) * radius,
+          y: type === "brand" ? 0 : Math.sin(angle) * radius * 0.75,
+          vx: 0,
+          vy: 0,
+          r: type === "brand" ? 28 : 16,
+        });
+      });
+      for (const e of ecosystem.edges ?? []) {
+        if (idSet.has(e.source) && idSet.has(e.target)) {
+          edges.push({ from: e.source, to: e.target });
+        }
+      }
+      if (nodes.length > 0) {
+        return { nodes, edges };
+      }
+    }
+
+    const label = brandName ?? ecosystem?.brand?.name ?? "Markanız";
     const center: GraphNode = {
       id: "brand",
-      label: brandName.length > 14 ? `${brandName.slice(0, 12)}…` : brandName,
+      label: label.length > 14 ? `${label.slice(0, 12)}…` : label,
       type: "brand",
-      detail: `${summary?.total_applications ?? 0} toplam başvuru`,
+      detail: `${ecosystem?.applications_total ?? 0} toplam başvuru`,
       x: 0,
       y: 0,
       vx: 0,
@@ -47,43 +92,8 @@ export function EcosystemGraph({ summary, applications }: Props) {
       r: 28,
     };
     nodes.push(center);
-
-    applications.slice(0, 6).forEach((app, i) => {
-      const angle = (i / Math.max(applications.length, 1)) * Math.PI * 2;
-      const id = `app-${app.id}`;
-      nodes.push({
-        id,
-        label: `#${app.id}`,
-        type: "application",
-        detail: `Durum: ${app.status}`,
-        x: Math.cos(angle) * 90,
-        y: Math.sin(angle) * 70,
-        vx: 0,
-        vy: 0,
-        r: 16,
-      });
-      edges.push({ from: "brand", to: id });
-    });
-
-    const outletCount = Math.min(4, Math.max(1, Math.floor((summary?.approved_applications ?? 0) / 2) + 1));
-    for (let i = 0; i < outletCount; i++) {
-      const id = `outlet-${i}`;
-      nodes.push({
-        id,
-        label: `Şube ${i + 1}`,
-        type: "outlet",
-        detail: "Aktif bayi noktası",
-        x: (Math.random() - 0.5) * 160,
-        y: (Math.random() - 0.5) * 120,
-        vx: 0,
-        vy: 0,
-        r: 14,
-      });
-      edges.push({ from: "brand", to: id });
-    }
-
     return { nodes, edges };
-  }, [summary, applications]);
+  }, [ecosystem, brandName]);
 
   useEffect(() => {
     nodesRef.current = graphData.nodes.map((n) => ({ ...n }));

@@ -304,6 +304,61 @@ export type FranchiseAnalytics = {
   supply_requests_by_status: Record<string, number>;
 };
 
+export type RegionOption = {
+  key: string;
+  label: string;
+};
+
+export type PlatformStats = {
+  approved_brands: number;
+  total_applications: number;
+  sectors: string[];
+};
+
+export type GeographyDemandPoint = {
+  city: string;
+  region?: string | null;
+  application_count: number;
+  intensity: number;
+};
+
+export type FranchiseGeography = {
+  period_days: number;
+  points: GeographyDemandPoint[];
+};
+
+export type EcosystemNode = {
+  id: string;
+  type: string;
+  label: string;
+  meta?: Record<string, unknown>;
+};
+
+export type EcosystemEdge = {
+  id: string;
+  source: string;
+  target: string;
+  type?: string;
+};
+
+export type FranchiseEcosystem = {
+  has_brand: boolean;
+  brand?: Brand | null;
+  outlets_total: number;
+  outlets_active: number;
+  documents_total: number;
+  applications_pending: number;
+  applications_approved: number;
+  applications_rejected: number;
+  applications_total: number;
+  inventory_item_count: number;
+  inventory_total_stock: number;
+  supply_requests_pending: number;
+  supply_requests_total: number;
+  nodes: EcosystemNode[];
+  edges: EcosystemEdge[];
+};
+
 export type ConversationLastMessage = {
   id: number;
   content: string;
@@ -330,18 +385,33 @@ export type ConversationSummary = ConversationItem;
 export type AssistantBrand = Brand & {
   estimated_roi_percent?: number | null;
   match_score?: number | null;
+  match_score_ratio?: number | null;
   match_reasons?: string[];
 };
 
-export type AgentIntent =
+/** Buyer asistan intent'leri */
+export type BuyerAgentIntent =
   | "brand_search"
-  | "brand_detail"
   | "brand_compare"
-  | "favorites_similar"
+  | "brand_pick"
+  | "brand_detail"
   | "application_status"
+  | "favorites_similar"
   | "territory_check"
   | "general"
   | "no_match";
+
+/** Franchise sahibi asistan intent'leri */
+export type FoAgentIntent =
+  | "low_stock"
+  | "supply_requests"
+  | "pending_applications"
+  | "dashboard"
+  | "outlets"
+  | "general"
+  | "no_match";
+
+export type AgentIntent = BuyerAgentIntent | FoAgentIntent;
 
 export type AssistantSuggestion = {
   label: string;
@@ -366,7 +436,7 @@ export type AssistantQueryResponse = {
   related_brands?: AssistantBrand[];
   related_brand_ids?: number[];
   filters_applied?: Record<string, unknown>;
-  source?: "rules" | "hybrid" | string;
+  source?: "rules" | "hybrid" | "llm_tools" | string;
   session_id?: number | null;
   message_id?: number | null;
   latency_ms?: number | null;

@@ -3,32 +3,30 @@
 import { useMutation } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CompareTable } from "@/components/compare-table";
 import { AgentAutoTextarea } from "@/components/agent/agent-auto-textarea";
 import { AgentBrandWidget } from "@/components/agent/agent-brand-widget";
 import { AgentSuggestionChips } from "@/components/agent/agent-suggestion-chips";
 import { AgentThinking } from "@/components/agent/agent-thinking";
+import { addBuyerFavorite } from "@/lib/api";
 import {
-  addBuyerFavorite,
-  deleteAgentSession,
-  getAgentSession,
-  postAgentChat,
-} from "@/lib/api";
+  AGENT_UI,
+  AgentChatRole,
+  buildAgentChatPayload,
+  deleteAgentSessionForRole,
+  getAgentChatErrorMessage,
+  getAgentSessionForRole,
+  isAgentSessionNotFound,
+  postAgentChatForRole,
+  readStoredAgentSessionId,
+  storeAgentSessionId,
+  mapAgentResponseToUi,
+} from "@/lib/agent-chat";
 import { sanitizeAgentAnswer } from "@/lib/agent-answer-sanitize";
 import { getUserFacingError } from "@/lib/form-errors";
 import { AssistantBrand, AssistantSuggestion } from "@/lib/types";
 import { useMediaQuery } from "@/hooks/use-media-query";
-
-const SESSION_STORAGE_KEY = "fh-agent-session-id";
-
-const WELCOME_TEXT =
-  "Merhaba — filtre formları yerine doğal dilde sorun. Size tıklanabilir marka kartları getireyim.";
-
-const STARTERS: AssistantSuggestion[] = [
-  { label: "Bütçeme uygun Marmara fast-food bayilikleri", action: "refine_search" },
-  { label: "500 bin TL altı gıda markaları", action: "refine_search" },
-  { label: "İstanbul'da kahve franchise fırsatları", action: "refine_search" },
-];
 
 type ChatMessage =
   | { id: string; role: "user"; text: string }
@@ -39,6 +37,7 @@ type ChatMessage =
       brands?: AssistantBrand[];
       suggestions?: AssistantSuggestion[];
       intent?: string;
+      compareRows?: Array<Record<string, string | number | null>>;
     };
 
 const messageVariants = {
@@ -51,11 +50,13 @@ function AgentMessage({
   index,
   onSuggestion,
   disabled,
+  showBrandWidgets,
 }: {
   msg: ChatMessage;
   index: number;
   onSuggestion: (s: AssistantSuggestion) => void;
   disabled?: boolean;
+  showBrandWidgets: boolean;
 }) {
   const isUser = msg.role === "user";
 
@@ -75,12 +76,15 @@ function AgentMessage({
       >
         {msg.text}
       </motion.p>
-      {msg.role === "assistant" && msg.brands && msg.brands.length > 0 ? (
+      {showBrandWidgets && msg.role === "assistant" && msg.brands && msg.brands.length > 0 ? (
         <div className="agent-widget-list">
           {msg.brands.map((brand, i) => (
             <AgentBrandWidget key={brand.id} brand={brand} index={i} />
           ))}
         </div>
+      ) : null}
+      {msg.role === "assistant" && msg.compareRows && msg.compareRows.length > 0 ? (
+        <CompareTable rows={msg.compareRows} />
       ) : null}
       {msg.role === "assistant" && msg.suggestions && msg.suggestions.length > 0 ? (
         <AgentSuggestionChips
@@ -94,36 +98,33 @@ function AgentMessage({
   );
 }
 
-function readStoredSessionId(): number | null {
-  if (typeof window === "undefined") return null;
-  const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : null;
-}
-
-function storeSessionId(id: number | null) {
-  if (typeof window === "undefined") return;
-  if (id == null) sessionStorage.removeItem(SESSION_STORAGE_KEY);
-  else sessionStorage.setItem(SESSION_STORAGE_KEY, String(id));
-}
-
-function FranchiseAgentInner() {
+function FranchiseAgentInner({ role }: { role: AgentChatRole }) {
+  const ui = AGENT_UI[role];
   const router = useRouter();
   const searchParams = useSearchParams();
   const brandFromUrl = Number(searchParams.get("brand"));
   const brandContextId =
-    Number.isFinite(brandFromUrl) && brandFromUrl > 0 ? brandFromUrl : undefined;
+    role === "buyer" && Number.isFinite(brandFromUrl) && brandFromUrl > 0 ? brandFromUrl : undefined;
 
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: "welcome", role: "assistant", text: WELCOME_TEXT },
+    { id: "welcome", role: "assistant", text: ui.welcomeText },
   ]);
   const listRef = useRef<HTMLDivElement>(null);
   const restoredRef = useRef(false);
   const isMobileSheet = useMediaQuery("(max-width: 767px)");
+
+  const starters = useMemo(
+    (): AssistantSuggestion[] =>
+      ui.starters.map((s) => ({
+        label: s.label,
+        action: s.action as AssistantSuggestion["action"],
+      })),
+    [ui.starters],
+  );
 
   const scrollDown = useCallback(() => {
     requestAnimationFrame(() => {
@@ -135,33 +136,42 @@ function FranchiseAgentInner() {
     mutationFn: (brandId: number) => addBuyerFavorite(brandId),
   });
 
-  const restoreSession = useCallback(async (id: number) => {
-    try {
-      const detail = await getAgentSession(id);
-      const history = detail.messages ?? [];
-      if (history.length === 0) return;
+  const restoreSession = useCallback(
+    async (id: number) => {
+      try {
+        const detail = await getAgentSessionForRole(role, id);
+        const history = detail.messages ?? [];
+        if (history.length === 0) return;
 
-      setSessionId(id);
-      setMessages([
-        { id: "welcome", role: "assistant", text: WELCOME_TEXT },
-        ...history.map((m) => ({
-          id: `hist-${m.id}`,
-          role: m.role === "user" ? ("user" as const) : ("assistant" as const),
-          text: m.role === "user" ? m.content : sanitizeAgentAnswer(m.content),
-        })),
-      ]);
-    } catch {
-      storeSessionId(null);
-      setSessionId(null);
-    }
-  }, []);
+        setSessionId(id);
+        setMessages([
+          { id: "welcome", role: "assistant", text: ui.welcomeText },
+          ...history.map((m) => ({
+            id: `hist-${m.id}`,
+            role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+            text: m.role === "user" ? m.content : sanitizeAgentAnswer(m.content),
+          })),
+        ]);
+      } catch {
+        storeAgentSessionId(role, null);
+        setSessionId(null);
+      }
+    },
+    [role, ui.welcomeText],
+  );
+
+  useEffect(() => {
+    restoredRef.current = false;
+    setSessionId(null);
+    setMessages([{ id: "welcome", role: "assistant", text: ui.welcomeText }]);
+  }, [role, ui.welcomeText]);
 
   useEffect(() => {
     if (!open || restoredRef.current) return;
     restoredRef.current = true;
-    const stored = readStoredSessionId();
+    const stored = readStoredAgentSessionId(role);
     if (stored) void restoreSession(stored);
-  }, [open, restoreSession]);
+  }, [open, restoreSession, role]);
 
   useEffect(() => {
     if (!open) return;
@@ -173,43 +183,62 @@ function FranchiseAgentInner() {
   }, [open]);
 
   const respond = async (text: string, opts?: { newSession?: boolean }) => {
-    const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: "user", text };
+    const trimmed = text.trim();
+    if (trimmed.length < 2) {
+      setMessages((m) => [
+        ...m,
+        {
+          id: `e-${Date.now()}`,
+          role: "assistant",
+          text: "Mesaj en az 2 karakter olmalı.",
+        },
+      ]);
+      return;
+    }
+
+    const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: "user", text: trimmed };
     setMessages((m) => [...m, userMsg]);
     setInput("");
     setTyping(true);
     scrollDown();
 
     try {
-      const data = await postAgentChat({
-        query: text,
-        session_id: opts?.newSession ? undefined : sessionId ?? undefined,
-        new_session: opts?.newSession ?? false,
-        brand_context_id: brandContextId,
-      });
+      const data = await postAgentChatForRole(
+        role,
+        buildAgentChatPayload(role, trimmed, {
+          sessionId,
+          newSession: opts?.newSession,
+          brandContextId,
+        }),
+      );
 
       if (data.session_id) {
         setSessionId(data.session_id);
-        storeSessionId(data.session_id);
+        storeAgentSessionId(role, data.session_id);
       }
 
+      const mapped = mapAgentResponseToUi(data, ui.showBrandWidgets);
       const reply: ChatMessage = {
-        id: `a-${data.message_id ?? Date.now()}`,
+        id: `a-${mapped.message_id ?? Date.now()}`,
         role: "assistant",
-        text: sanitizeAgentAnswer(data.answer),
-        brands: data.brands,
-        suggestions: data.suggestions,
-        intent: data.intent,
+        text: sanitizeAgentAnswer(mapped.answer),
+        brands: mapped.brands,
+        suggestions: mapped.suggestions,
+        intent: mapped.intent,
+        compareRows: mapped.compareRows,
       };
       setMessages((m) => [...m, reply]);
     } catch (e) {
+      if (isAgentSessionNotFound(e)) {
+        storeAgentSessionId(role, null);
+        setSessionId(null);
+      }
       setMessages((m) => [
         ...m,
         {
           id: `e-${Date.now()}`,
           role: "assistant",
-          text: sanitizeAgentAnswer(
-            getUserFacingError(e, "Asistan yanıt veremedi. Lütfen tekrar deneyin."),
-          ),
+          text: sanitizeAgentAnswer(getAgentChatErrorMessage(e)),
         },
       ]);
     } finally {
@@ -221,17 +250,44 @@ function FranchiseAgentInner() {
   const startNewChat = async () => {
     if (sessionId) {
       try {
-        await deleteAgentSession(sessionId);
+        await deleteAgentSessionForRole(role, sessionId);
       } catch {
         /* oturum zaten silinmiş olabilir */
       }
     }
-    storeSessionId(null);
+    storeAgentSessionId(role, null);
     setSessionId(null);
-    setMessages([{ id: "welcome", role: "assistant", text: WELCOME_TEXT }]);
+    restoredRef.current = false;
+    setMessages([{ id: "welcome", role: "assistant", text: ui.welcomeText }]);
+  };
+
+  const handleFoNav = (path: string) => {
+    setOpen(false);
+    router.push(path);
   };
 
   const handleSuggestion = async (s: AssistantSuggestion) => {
+    if (role === "franchise_owner") {
+      if (s.action === "supply_requests") {
+        handleFoNav("/franchise-owner/stock");
+        return;
+      }
+      if (s.action === "pending_applications") {
+        handleFoNav("/franchise-owner/applications");
+        return;
+      }
+      if (s.action === "dashboard") {
+        handleFoNav("/franchise-owner");
+        return;
+      }
+      if (s.action === "low_stock" || s.action === "low_stock_outlet") {
+        handleFoNav("/franchise-owner/stock?tab=depo");
+        return;
+      }
+      respond(s.label);
+      return;
+    }
+
     if (s.action === "refine_search") {
       respond(s.label);
       return;
@@ -285,7 +341,7 @@ function FranchiseAgentInner() {
         className="agent-fab"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        aria-label="Franchise asistanı"
+        aria-label={ui.panelTitle}
       >
         {open ? "×" : "AI"}
       </button>
@@ -305,28 +361,20 @@ function FranchiseAgentInner() {
             />
             <motion.div
               className={`agent-panel agent-panel-dark${isMobileSheet ? " agent-panel-sheet" : ""}`}
-              initial={
-                isMobileSheet
-                  ? { y: "100%" }
-                  : { opacity: 0, y: 32, scale: 0.92 }
-              }
+              initial={isMobileSheet ? { y: "100%" } : { opacity: 0, y: 32, scale: 0.92 }}
               animate={isMobileSheet ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
-              exit={
-                isMobileSheet
-                  ? { y: "100%" }
-                  : { opacity: 0, y: 20, scale: 0.94 }
-              }
+              exit={isMobileSheet ? { y: "100%" } : { opacity: 0, y: 20, scale: 0.94 }}
               transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
               role="dialog"
               aria-modal="true"
-              aria-label="Franchise asistanı"
+              aria-label={ui.panelTitle}
               onClick={(e) => e.stopPropagation()}
             >
               {isMobileSheet ? <div className="agent-sheet-handle" aria-hidden /> : null}
               <header className="agent-panel-header">
                 <div>
                   <p className="agent-panel-eyebrow">Yapay zeka asistanı</p>
-                  <h2 className="agent-panel-title">Franchise Asistanı</h2>
+                  <h2 className="agent-panel-title">{ui.panelTitle}</h2>
                 </div>
                 <div className="agent-panel-header-actions">
                   <button
@@ -351,6 +399,7 @@ function FranchiseAgentInner() {
                     index={i}
                     onSuggestion={handleSuggestion}
                     disabled={typing}
+                    showBrandWidgets={ui.showBrandWidgets}
                   />
                 ))}
                 {typing ? <AgentThinking /> : null}
@@ -359,7 +408,7 @@ function FranchiseAgentInner() {
               {showWelcomeStarters ? (
                 <div className="agent-starters">
                   <AgentSuggestionChips
-                    items={STARTERS}
+                    items={starters}
                     disabled={typing}
                     onSelect={handleSuggestion}
                   />
@@ -371,7 +420,7 @@ function FranchiseAgentInner() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onEnterSubmit={submitInput}
-                  placeholder="Örn: Marmara'da bütçeme uygun fast-food…"
+                  placeholder={ui.placeholder}
                   disabled={typing}
                 />
                 <button type="submit" className="agent-panel-submit btn btn-primary btn-sm" disabled={typing || !input.trim()}>
@@ -386,10 +435,10 @@ function FranchiseAgentInner() {
   );
 }
 
-export function FranchiseAgent() {
+export function FranchiseAgent({ role = "buyer" }: { role?: AgentChatRole }) {
   return (
     <Suspense fallback={null}>
-      <FranchiseAgentInner />
+      <FranchiseAgentInner role={role} />
     </Suspense>
   );
 }

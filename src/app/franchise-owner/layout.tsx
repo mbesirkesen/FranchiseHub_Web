@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import { FranchiseAgent } from "@/components/agent/franchise-agent";
 import { PanelShell } from "@/components/panel-shell";
 import { RoleGuard } from "@/components/role-guard";
 import { FRANCHISE_OWNER_NAV } from "@/lib/routes";
@@ -15,6 +16,7 @@ export default function FranchiseOwnerLayout({ children }: { children: ReactNode
       >
         {children}
       </PanelShell>
+      <FranchiseAgent role="franchise_owner" />
     </RoleGuard>
   );
 }

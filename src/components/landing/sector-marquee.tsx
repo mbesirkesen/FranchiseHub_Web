@@ -1,18 +1,28 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { SectorIcon, SectorId } from "@/components/landing/sector-icon";
+import { getPlatformStats } from "@/lib/api";
 
-const SECTORS: { label: string; icon: SectorId }[] = [
-  { label: "Kahve", icon: "coffee" },
-  { label: "Gıda", icon: "food" },
-  { label: "Güzellik", icon: "beauty" },
-  { label: "Spor", icon: "sport" },
-  { label: "Perakende", icon: "retail" },
-  { label: "Otomotiv", icon: "automotive" },
-];
+const SECTOR_ICON_MAP: Record<string, SectorId> = {
+  kahve: "coffee",
+  gıda: "food",
+  restoran: "food",
+  güzellik: "beauty",
+  spor: "sport",
+  perakende: "retail",
+  otomotiv: "automotive",
+};
 
-const MARQUEE_ITEMS = [...SECTORS, ...SECTORS];
+function sectorIconFor(label: string): SectorId {
+  const key = label.toLowerCase();
+  for (const [part, icon] of Object.entries(SECTOR_ICON_MAP)) {
+    if (key.includes(part)) return icon;
+  }
+  return "retail";
+}
+
 const PX_PER_SECOND = 50;
 
 export function SectorMarquee() {
@@ -22,10 +32,23 @@ export function SectorMarquee() {
   const offsetRef = useRef(0);
   const [ready, setReady] = useState(false);
 
+  const statsQuery = useQuery({
+    queryKey: ["platform-stats"],
+    queryFn: getPlatformStats,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const sectors = (statsQuery.data?.sectors ?? []).map((label) => ({
+    label,
+    icon: sectorIconFor(label),
+  }));
+
+  const marqueeItems = sectors.length > 0 ? [...sectors, ...sectors] : [];
+
   useLayoutEffect(() => {
     const track = trackRef.current;
     const loopStart = loopStartRef.current;
-    if (!track || !loopStart) return;
+    if (!track || !loopStart || marqueeItems.length === 0) return;
 
     const measure = () => {
       const loop = loopStart.offsetLeft;
@@ -43,7 +66,7 @@ export function SectorMarquee() {
       ro.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, []);
+  }, [marqueeItems.length]);
 
   useEffect(() => {
     if (!ready) return;
@@ -82,6 +105,12 @@ export function SectorMarquee() {
     return () => cancelAnimationFrame(raf);
   }, [ready]);
 
+  if (marqueeItems.length === 0) {
+    return null;
+  }
+
+  const half = sectors.length;
+
   return (
     <section
       className="landing-marquee-wrap border-y border-[var(--border)] bg-[var(--card)]"
@@ -91,12 +120,12 @@ export function SectorMarquee() {
         ref={trackRef}
         className={`landing-marquee-track${ready ? " landing-marquee-track-ready" : ""}`}
       >
-        {MARQUEE_ITEMS.map((s, i) => (
+        {marqueeItems.map((s, i) => (
           <span
             key={`${s.label}-${i}`}
-            ref={i === SECTORS.length ? loopStartRef : undefined}
+            ref={i === half ? loopStartRef : undefined}
             className="landing-marquee-item"
-            aria-hidden={i >= SECTORS.length ? true : undefined}
+            aria-hidden={i >= half ? true : undefined}
           >
             <SectorIcon id={s.icon} className="landing-marquee-icon" />
             {s.label}

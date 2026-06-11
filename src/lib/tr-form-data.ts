@@ -1,4 +1,4 @@
-/** Türkiye illeri (alfabetik) */
+/** Türkiye illeri — API yüklenemezse yedek liste (GET /reference/cities) */
 export const TR_CITIES = [
   "Adana",
   "Adıyaman",

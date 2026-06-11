@@ -14,9 +14,9 @@ export function AgentSuggestionChips({ items, disabled, onSelect, className }: P
 
   return (
     <div className={`agent-action-chips${className ? ` ${className}` : ""}`}>
-      {items.map((s) => (
+      {items.map((s, index) => (
         <button
-          key={`${s.action}-${s.label}`}
+          key={`${s.action}-${s.brand_id ?? "none"}-${index}`}
           type="button"
           className="agent-action-chip"
           onClick={() => onSelect(s)}

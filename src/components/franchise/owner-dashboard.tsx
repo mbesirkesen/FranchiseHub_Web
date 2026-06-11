@@ -1,32 +1,34 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { Reveal } from "@/components/motion/reveal";
+import { EcosystemGraph } from "@/components/franchise/ecosystem-graph";
 import { BentoCell, BentoGrid } from "@/components/interaction/bento-grid";
 import { BentoMetricCell } from "@/components/interaction/bento-metric-cell";
 import { Skeleton } from "@/components/interaction/skeleton";
-import { EcosystemGraph } from "@/components/franchise/ecosystem-graph";
-import { FranchiseDashboardSummary, Application } from "@/lib/types";
-
-const TR_CITIES = [
-  { name: "İstanbul", x: 28, y: 32 },
-  { name: "Ankara", x: 48, y: 38 },
-  { name: "İzmir", x: 18, y: 48 },
-  { name: "Bursa", x: 26, y: 36 },
-  { name: "Antalya", x: 42, y: 62 },
-  { name: "Adana", x: 58, y: 58 },
-  { name: "Trabzon", x: 72, y: 28 },
-];
+import { getFranchiseEcosystem, getFranchiseGeography } from "@/lib/api";
+import { FranchiseDashboardSummary } from "@/lib/types";
 
 type Props = {
   summary: FranchiseDashboardSummary | undefined;
-  applications: Application[];
   loading?: boolean;
 };
 
-export function FranchiseOwnerDashboard({ summary, applications, loading }: Props) {
+export function FranchiseOwnerDashboard({ summary, loading }: Props) {
   const s = summary;
+
+  const geographyQuery = useQuery({
+    queryKey: ["franchise-geography"],
+    queryFn: () => getFranchiseGeography(30),
+  });
+
+  const ecosystemQuery = useQuery({
+    queryKey: ["franchise-ecosystem"],
+    queryFn: getFranchiseEcosystem,
+  });
+
   const chartData = useMemo(
     () => [
       { label: "Bekleyen", value: s?.pending_applications ?? 0, color: "#f59e0b" },
@@ -37,15 +39,8 @@ export function FranchiseOwnerDashboard({ summary, applications, loading }: Prop
   );
   const maxBar = Math.max(...chartData.map((d) => d.value), 1);
 
-  const heatPoints = useMemo(() => {
-    const total = applications.length || 1;
-    return TR_CITIES.map((city, i) => {
-      const slice = applications.filter((_, idx) => idx % TR_CITIES.length === i);
-      const intensity = slice.length / total;
-      const boost = (s?.pending_applications ?? 0) > 0 ? 0.25 + intensity * 0.75 : 0.15 + intensity * 0.5;
-      return { ...city, intensity: Math.min(1, boost) };
-    });
-  }, [applications, s?.pending_applications]);
+  const geoPoints = geographyQuery.data?.points ?? [];
+  const maxGeo = Math.max(...geoPoints.map((p) => p.application_count), 1);
 
   const metrics = [
     { label: "Toplam başvuru", value: s?.total_applications ?? 0, watermark: "📄" },
@@ -113,42 +108,33 @@ export function FranchiseOwnerDashboard({ summary, applications, loading }: Prop
         <Reveal delay={0.15}>
           <>
             <h3 className="dash-panel-title">Talep haritası</h3>
-            <p className="dash-panel-desc">Bölgesel franchise ilgisi</p>
-            <div className="turkey-heatmap mt-2">
-              <svg viewBox="0 0 100 70" className="h-auto w-full" aria-label="Türkiye talep haritası">
-                <path
-                  d="M18 8 L35 6 L52 10 L68 8 L82 16 L88 28 L85 42 L78 55 L62 62 L45 65 L28 58 L12 48 L8 32 Z"
-                  fill="rgba(255,107,74,0.06)"
-                  stroke="rgba(255,107,74,0.2)"
-                  strokeWidth="0.5"
-                />
-                {heatPoints.map((p) => (
-                  <g key={p.name}>
-                    <motion.circle
-                      cx={p.x}
-                      cy={p.y}
-                      r={4 + p.intensity * 8}
-                      fill={`rgba(255, 107, 74, ${0.15 + p.intensity * 0.35})`}
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.3, duration: 0.6 }}
-                    />
-                    <motion.circle
-                      cx={p.x}
-                      cy={p.y}
-                      r={2 + p.intensity * 2}
-                      fill="#ff6b4a"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: [1, 1.3, 1] }}
-                      transition={{ delay: 0.5, duration: 2, repeat: Infinity }}
-                    />
-                    <text x={p.x} y={p.y + 14} textAnchor="middle" fontSize="3.5" fill="var(--muted-foreground)">
-                      {p.name}
-                    </text>
-                  </g>
+            <p className="dash-panel-desc">
+              Son {geographyQuery.data?.period_days ?? 30} gün — şehir bazlı başvuru
+            </p>
+            {geographyQuery.isLoading ? (
+              <Skeleton className="mt-4 h-24 w-full" />
+            ) : geoPoints.length === 0 ? (
+              <p className="mt-4 text-xs text-[var(--muted-foreground)]">Henüz coğrafi başvuru verisi yok.</p>
+            ) : (
+              <ul className="mt-4 space-y-2">
+                {geoPoints.slice(0, 6).map((p) => (
+                  <li key={p.city}>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium">{p.city}</span>
+                      <span className="text-[var(--muted-foreground)]">{p.application_count} başvuru</span>
+                    </div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--bg-subtle)]">
+                      <motion.div
+                        className="h-full rounded-full bg-[var(--primary)]"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(p.application_count / maxGeo) * 100}%` }}
+                        transition={{ duration: 0.6 }}
+                      />
+                    </div>
+                  </li>
                 ))}
-              </svg>
-            </div>
+              </ul>
+            )}
           </>
         </Reveal>
       </BentoCell>
@@ -159,7 +145,11 @@ export function FranchiseOwnerDashboard({ summary, applications, loading }: Prop
             <h3 className="dash-panel-title">Ekosistem ağı</h3>
             <p className="dash-panel-desc">Marka, başvurular ve şubeler — sürükleyerek keşfedin</p>
           </div>
-          <EcosystemGraph summary={s} applications={applications} />
+          {ecosystemQuery.isLoading ? (
+            <Skeleton className="mx-4 mb-4 h-48 w-auto" />
+          ) : (
+            <EcosystemGraph ecosystem={ecosystemQuery.data} brandName={s?.brand_name} />
+          )}
         </Reveal>
       </BentoCell>
     </BentoGrid>
